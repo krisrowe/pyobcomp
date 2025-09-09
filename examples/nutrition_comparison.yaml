@@ -1,0 +1,60 @@
+# Example configuration for nutritional data comparison
+fields:
+  # Nutritional values with specific tolerances
+  "items.*.nutrition.calories": 
+    percentage: 10.0
+  "items.*.nutrition.protein": 
+    percentage: 10.0
+    absolute: 2.0
+  "items.*.nutrition.carbs": 
+    percentage: 10.0
+    absolute: 2.0
+  "items.*.nutrition.fat": 
+    percentage: 10.0
+    absolute: 2.0
+  
+  # Consumed nutrition with same tolerances
+  "items.*.consumed.nutrition.calories": 
+    percentage: 10.0
+  "items.*.consumed.nutrition.protein": 
+    percentage: 10.0
+    absolute: 2.0
+  
+  # Totals with same tolerances
+  "totals.calories": 
+    percentage: 10.0
+  "totals.protein": 
+    percentage: 10.0
+    absolute: 2.0
+  
+  # Critical fields - must match exactly
+  "items.*.verified_calculation": 
+    required: true
+  "verified_calculation": 
+    required: true
+  
+  # Text fields - only check they're not empty
+  "items.*.food_name": 
+    text_validation: true
+  "items.*.user_description": 
+    text_validation: true
+  
+  # Optional fields - missing is OK
+  "items.*.confidence": 
+    required: false
+  "items.*.fiber": 
+    required: false
+  
+  # Ignore fields that vary but don't matter
+  "items.*.source_notes": 
+    ignore: true
+  "meta.time": 
+    ignore: true
+  "meta.provider": 
+    ignore: true
+  "meta": 
+    required: false
+
+options:
+  normalize_types: true
+  debug: false

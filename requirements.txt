@@ -1,0 +1,2 @@
+# Core dependencies
+PyYAML>=5.0
