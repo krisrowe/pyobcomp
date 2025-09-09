@@ -1,0 +1,7 @@
+fields:
+  items.*.calories:
+    percentage: 5.0
+  items.*.protein:
+    absolute: 1.0
+  items.*.name:
+    required: true

@@ -5,20 +5,29 @@ A robust object comparison framework with field-level tolerance settings
 and comprehensive reporting capabilities for testing and validation.
 """
 
-from .comparator import ObjectComparator
-from .config import ToleranceConfig, FieldConfig, ComparisonOptions
-from .result import ComparisonResult, Field, ComparisonStatus
+from .comparer import Comparer
+from .factory import ComparerFactory, load_profile, create_from_file, create
+from .models import (
+    ToleranceConfig, FieldConfig, FieldSettings, ComparisonOptions, 
+    ComparisonResult, FieldResult, ComparisonStatus, CompareProfile
+)
 
 __version__ = "0.1.0"
 __author__ = "Kris Rowe"
 __email__ = "krisrowe@example.com"
 
 __all__ = [
-    "ObjectComparator",
+    "Comparer",
+    "ComparerFactory",
+    "load_profile",
+    "create_from_file", 
+    "create",
     "ToleranceConfig", 
     "FieldConfig",
+    "FieldSettings",
     "ComparisonOptions",
     "ComparisonResult",
-    "Field",
+    "FieldResult",
     "ComparisonStatus",
+    "CompareProfile",
 ]

@@ -1,0 +1,7 @@
+fields:
+  calories:
+    percentage: 5.0
+    absolute: 2.0
+  protein:
+    required: true
+    ignore: true

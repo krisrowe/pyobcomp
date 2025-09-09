@@ -1,0 +1,11 @@
+{
+  "nutrition": {
+    "macros": {
+      "calories": 210,
+      "protein": 27.0
+    },
+    "vitamins": {
+      "vitamin_c": 45
+    }
+  }
+}

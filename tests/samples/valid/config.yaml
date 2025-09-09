@@ -1,0 +1,12 @@
+fields:
+  calories:
+    percentage: 5.0
+  protein:
+    absolute: 2.0
+  carbs:
+    required: true
+  fiber:
+    ignore: true
+options:
+  normalize_types: true
+  debug: false

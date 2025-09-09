@@ -1,0 +1,5 @@
+fields:
+  calories:
+    absolute: 10.0
+  protein:
+    absolute: 2.5

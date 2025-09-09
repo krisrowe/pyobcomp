@@ -17,9 +17,14 @@ Thank you for your interest in contributing to PyObComp! This document provides 
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-4. **Install development dependencies**:
+4. **Install in development mode**:
    ```bash
-   pip install -e ".[dev]"
+   pip install -e .
+   ```
+
+5. **Install development dependencies**:
+   ```bash
+   pip install pytest black flake8 mypy
    ```
 
 ## Code Style
@@ -30,12 +35,32 @@ Thank you for your interest in contributing to PyObComp! This document provides 
 - Use **black** for code formatting: `black src/ tests/`
 - Use **flake8** for linting: `flake8 src/ tests/`
 
-## Testing
+## Running Tests
+
+Run the test suite to ensure everything works:
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=pyobcomp
+
+# Run specific test file
+pytest tests/test_comparer.py
+
+# Run with verbose output
+pytest -v
+```
+
+## Testing Guidelines
 
 - Write tests for all new functionality
 - Ensure all tests pass: `pytest`
 - Aim for high test coverage
 - Use descriptive test names that explain what is being tested
+- Test both success and failure cases
+- Include edge cases and error conditions
 
 ## Pull Request Process
 

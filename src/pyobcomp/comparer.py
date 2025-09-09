@@ -1,14 +1,17 @@
 """
-Main ObjectComparator class for PyObComp.
+Main Comparer class for PyObComp.
 """
 
 from typing import Dict, Any, Optional, Union, List
-import yaml
 import re
-from .config import ToleranceConfig, FieldConfig, ComparisonOptions, ComparisonResult, Field, ComparisonStatus
+
+from .models import (
+    ToleranceConfig, FieldConfig, ComparisonOptions, 
+    ComparisonResult, FieldResult, ComparisonStatus
+)
 
 
-class ObjectComparator:
+class Comparer:
     """Main class for object comparison with tolerance settings."""
     
     def __init__(
@@ -16,7 +19,7 @@ class ObjectComparator:
         tolerances: Optional[Dict[str, Union[ToleranceConfig, FieldConfig]]] = None,
         options: Optional[ComparisonOptions] = None
     ):
-        """Initialize the comparator.
+        """Initialize the comparer.
         
         Args:
             tolerances: Dictionary mapping field paths to tolerance/field configs
@@ -24,46 +27,6 @@ class ObjectComparator:
         """
         self.tolerances = tolerances or {}
         self.options = options or ComparisonOptions()
-    
-    @classmethod
-    def from_yaml(cls, config_path: str) -> 'ObjectComparator':
-        """Create comparator from YAML configuration file.
-        
-        Args:
-            config_path: Path to YAML configuration file
-            
-        Returns:
-            Configured ObjectComparator instance
-        """
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-        
-        # Parse fields configuration
-        tolerances = {}
-        if 'fields' in config:
-            for field_path, field_config in config['fields'].items():
-                if isinstance(field_config, dict):
-                    if 'percentage' in field_config or 'absolute' in field_config:
-                        # Tolerance configuration
-                        tolerances[field_path] = ToleranceConfig(
-                            percentage=field_config.get('percentage'),
-                            absolute=field_config.get('absolute')
-                        )
-                    else:
-                        # Field configuration
-                        tolerances[field_path] = FieldConfig(
-                            required=field_config.get('required', True),
-                            ignore=field_config.get('ignore', False),
-                            text_validation=field_config.get('text_validation', False)
-                        )
-        
-        # Parse options
-        options = ComparisonOptions()
-        if 'options' in config:
-            options.normalize_types = config['options'].get('normalize_types', False)
-            options.debug = config['options'].get('debug', False)
-        
-        return cls(tolerances=tolerances, options=options)
     
     def compare(self, expected: Any, actual: Any) -> ComparisonResult:
         """Compare two objects.
@@ -88,12 +51,12 @@ class ObjectComparator:
             fields=fields
         )
     
-    def _compare_values(self, path: str, expected: Any, actual: Any, fields: List[Field]) -> ComparisonResult:
+    def _compare_values(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> ComparisonResult:
         """Compare two values at a specific path."""
         # Check if this field should be ignored
         field_config = self._get_field_config(path)
-        if field_config and field_config.ignore:
-            fields.append(Field(
+        if field_config and hasattr(field_config, 'ignore') and field_config.ignore:
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=True,
                 status=ComparisonStatus.IGNORED,
@@ -105,7 +68,7 @@ class ObjectComparator:
         
         # Handle missing values
         if expected is None and actual is None:
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=True,
                 status=ComparisonStatus.IDENTICAL,
@@ -116,8 +79,8 @@ class ObjectComparator:
             return ComparisonResult(matches=True, summary="Both None", fields=[])
         
         if expected is None:
-            if field_config and not field_config.required:
-                fields.append(Field(
+            if field_config and hasattr(field_config, 'required') and not field_config.required:
+                fields.append(FieldResult(
                     name=path or "root",
                     passed=True,
                     status=ComparisonStatus.OPTIONAL_MISSING,
@@ -127,7 +90,7 @@ class ObjectComparator:
                 ))
                 return ComparisonResult(matches=True, summary="Optional field missing", fields=[])
             else:
-                fields.append(Field(
+                fields.append(FieldResult(
                     name=path or "root",
                     passed=False,
                     status=ComparisonStatus.MISSING_REQUIRED,
@@ -138,8 +101,8 @@ class ObjectComparator:
                 return ComparisonResult(matches=False, summary="Required field missing", fields=[])
         
         if actual is None:
-            if field_config and not field_config.required:
-                fields.append(Field(
+            if field_config and hasattr(field_config, 'required') and not field_config.required:
+                fields.append(FieldResult(
                     name=path or "root",
                     passed=True,
                     status=ComparisonStatus.OPTIONAL_MISSING,
@@ -149,7 +112,7 @@ class ObjectComparator:
                 ))
                 return ComparisonResult(matches=True, summary="Optional field missing", fields=[])
             else:
-                fields.append(Field(
+                fields.append(FieldResult(
                     name=path or "root",
                     passed=False,
                     status=ComparisonStatus.MISSING_REQUIRED,
@@ -161,7 +124,7 @@ class ObjectComparator:
         
         # Type checking
         if not self._types_compatible(expected, actual):
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=False,
                 status=ComparisonStatus.TYPE_MISMATCH,
@@ -181,7 +144,7 @@ class ObjectComparator:
         else:
             return self._compare_primitives(path, expected, actual, fields)
     
-    def _compare_dicts(self, path: str, expected: Dict, actual: Dict, fields: List[Field]) -> ComparisonResult:
+    def _compare_dicts(self, path: str, expected: Dict, actual: Dict, fields: List[FieldResult]) -> ComparisonResult:
         """Compare two dictionaries."""
         all_passed = True
         all_keys = set(expected.keys()) | set(actual.keys())
@@ -197,12 +160,12 @@ class ObjectComparator:
         
         return ComparisonResult(matches=all_passed, summary="Dict comparison", fields=[])
     
-    def _compare_lists(self, path: str, expected: List, actual: List, fields: List[Field]) -> ComparisonResult:
+    def _compare_lists(self, path: str, expected: List, actual: List, fields: List[FieldResult]) -> ComparisonResult:
         """Compare two lists."""
         all_passed = True
         
         if len(expected) != len(actual):
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=f"{path}.length" if path else "length",
                 passed=False,
                 status=ComparisonStatus.ARRAY_LENGTH_MISMATCH,
@@ -211,20 +174,50 @@ class ObjectComparator:
                 reason=f"Array length mismatch: expected {len(expected)}, got {len(actual)}"
             ))
             all_passed = False
-        else:
-            for i, (exp_item, act_item) in enumerate(zip(expected, actual)):
+        
+        # Compare items up to the minimum length
+        min_length = min(len(expected), len(actual))
+        for i in range(min_length):
+            item_path = f"{path}[{i}]" if path else f"[{i}]"
+            result = self._compare_values(item_path, expected[i], actual[i], fields)
+            if not result.matches:
+                all_passed = False
+        
+        # Handle missing items in actual list
+        if len(actual) < len(expected):
+            for i in range(len(actual), len(expected)):
                 item_path = f"{path}[{i}]" if path else f"[{i}]"
-                result = self._compare_values(item_path, exp_item, act_item, fields)
-                if not result.matches:
+                # Check if there are field configurations for this item
+                field_config = self._get_field_config(item_path)
+                if field_config and hasattr(field_config, 'required') and not field_config.required:
+                    # Optional field, mark as missing but passed
+                    fields.append(FieldResult(
+                        name=item_path,
+                        passed=True,
+                        status=ComparisonStatus.OPTIONAL_MISSING,
+                        expected=expected[i],
+                        actual=None,
+                        reason="Optional field missing"
+                    ))
+                else:
+                    # Required field, mark as failed
+                    fields.append(FieldResult(
+                        name=item_path,
+                        passed=False,
+                        status=ComparisonStatus.MISSING_REQUIRED,
+                        expected=expected[i],
+                        actual=None,
+                        reason="Required field missing"
+                    ))
                     all_passed = False
         
         return ComparisonResult(matches=all_passed, summary="List comparison", fields=[])
     
-    def _compare_primitives(self, path: str, expected: Any, actual: Any, fields: List[Field]) -> ComparisonResult:
+    def _compare_primitives(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> ComparisonResult:
         """Compare primitive values (numbers, strings, booleans)."""
         # Check for exact match first
         if expected == actual:
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=True,
                 status=ComparisonStatus.IDENTICAL,
@@ -240,10 +233,10 @@ class ObjectComparator:
         
         # Check for text validation
         field_config = self._get_field_config(path)
-        if field_config and field_config.text_validation:
+        if field_config and hasattr(field_config, 'text_validation') and field_config.text_validation:
             # For text validation, only check that actual is not empty
             if actual and str(actual).strip():
-                fields.append(Field(
+                fields.append(FieldResult(
                     name=path or "root",
                     passed=True,
                     status=ComparisonStatus.IN_TOLERANCE,
@@ -253,7 +246,7 @@ class ObjectComparator:
                 ))
                 return ComparisonResult(matches=True, summary="Text validation passed", fields=[])
             else:
-                fields.append(Field(
+                fields.append(FieldResult(
                     name=path or "root",
                     passed=False,
                     status=ComparisonStatus.OUTSIDE_TOLERANCE,
@@ -264,7 +257,7 @@ class ObjectComparator:
                 return ComparisonResult(matches=False, summary="Text validation failed", fields=[])
         
         # Default: exact match required
-        fields.append(Field(
+        fields.append(FieldResult(
             name=path or "root",
             passed=False,
             status=ComparisonStatus.VALUE_MISMATCH,
@@ -274,13 +267,13 @@ class ObjectComparator:
         ))
         return ComparisonResult(matches=False, summary="Value mismatch", fields=[])
     
-    def _compare_numerical_with_tolerance(self, path: str, expected: float, actual: float, fields: List[Field]) -> ComparisonResult:
+    def _compare_numerical_with_tolerance(self, path: str, expected: float, actual: float, fields: List[FieldResult]) -> ComparisonResult:
         """Compare numerical values with tolerance settings."""
         field_config = self._get_field_config(path)
         
         if not field_config or not isinstance(field_config, ToleranceConfig):
             # No tolerance configured, require exact match
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=False,
                 status=ComparisonStatus.VALUE_MISMATCH,
@@ -294,10 +287,10 @@ class ObjectComparator:
         percentage_tolerance = None
         absolute_tolerance = None
         
-        if field_config.percentage is not None:
+        if hasattr(field_config, 'percentage') and field_config.percentage is not None:
             percentage_tolerance = abs(expected * field_config.percentage / 100.0)
         
-        if field_config.absolute is not None:
+        if hasattr(field_config, 'absolute') and field_config.absolute is not None:
             absolute_tolerance = field_config.absolute
         
         # Determine which tolerance to use (whichever is greater)
@@ -307,10 +300,10 @@ class ObjectComparator:
         if percentage_tolerance is not None and absolute_tolerance is not None:
             if percentage_tolerance >= absolute_tolerance:
                 tolerance = percentage_tolerance
-                tolerance_type = f"{field_config.percentage}%"
+                tolerance_type = f"{field_config.percentage}%" if hasattr(field_config, 'percentage') else "percentage"
             else:
                 tolerance = absolute_tolerance
-                tolerance_type = f"{field_config.absolute} absolute"
+                tolerance_type = f"{field_config.absolute} absolute" if hasattr(field_config, 'absolute') else "absolute"
         elif percentage_tolerance is not None:
             tolerance = percentage_tolerance
             tolerance_type = f"{field_config.percentage}%"
@@ -320,7 +313,7 @@ class ObjectComparator:
         
         if tolerance is None:
             # No tolerance configured
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=False,
                 status=ComparisonStatus.VALUE_MISMATCH,
@@ -333,7 +326,7 @@ class ObjectComparator:
         # Check if within tolerance
         difference = abs(expected - actual)
         if difference <= tolerance:
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=True,
                 status=ComparisonStatus.IN_TOLERANCE,
@@ -344,7 +337,7 @@ class ObjectComparator:
             ))
             return ComparisonResult(matches=True, summary="Within tolerance", fields=[])
         else:
-            fields.append(Field(
+            fields.append(FieldResult(
                 name=path or "root",
                 passed=False,
                 status=ComparisonStatus.OUTSIDE_TOLERANCE,
@@ -371,10 +364,10 @@ class ObjectComparator:
     def _path_matches_pattern(self, path: str, pattern: str) -> bool:
         """Check if a field path matches a pattern with wildcards."""
         # Convert pattern to regex
-        # Replace * with .* for wildcard matching
-        regex_pattern = pattern.replace('*', '.*')
-        regex_pattern = regex_pattern.replace('.', r'\.')  # Escape dots
-        regex_pattern = regex_pattern.replace(r'\.*', '.*')  # Fix wildcard after escaped dot
+        # First escape all dots
+        regex_pattern = pattern.replace('.', r'\.')
+        # Then replace \.* with .* for wildcard matching
+        regex_pattern = regex_pattern.replace(r'\.*', '.*')
         
         try:
             return bool(re.match(f"^{regex_pattern}$", path))

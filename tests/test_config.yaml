@@ -1,0 +1,14 @@
+fields:
+  "calories":
+    percentage: 10.0
+    absolute: 2.0
+  "protein":
+    percentage: 15.0
+  "verified":
+    required: true
+  "notes":
+    ignore: true
+
+options:
+  normalize_types: true
+  debug: false

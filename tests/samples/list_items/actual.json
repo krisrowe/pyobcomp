@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "name": "Apple",
+      "calories": 105,
+      "protein": 0.6
+    },
+    {
+      "name": "Banana",
+      "calories": 190,
+      "protein": 1.4
+    }
+  ]
+}

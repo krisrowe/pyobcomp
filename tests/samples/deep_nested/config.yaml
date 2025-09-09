@@ -1,0 +1,7 @@
+fields:
+  nutrition.macros.calories:
+    percentage: 5.0
+  nutrition.macros.protein:
+    absolute: 2.0
+  nutrition.vitamins.vitamin_c:
+    required: true

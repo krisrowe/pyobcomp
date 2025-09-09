@@ -6,7 +6,7 @@ A robust object comparison framework with field-level tolerance settings and com
 
 ## Overview
 
-The PyObComp framework provides sophisticated comparison capabilities for complex nested objects, particularly useful for validating AI-generated responses against expected data. It supports:
+The PyObComp framework provides sophisticated comparison capabilities for complex nested objects, particularly useful for validating generated responses against expected data. It supports:
 
 - **Field-level tolerance settings** for numerical comparisons
 - **Flexible tolerance types** (percentage, absolute, or both)
@@ -21,24 +21,106 @@ The PyObComp framework provides sophisticated comparison capabilities for comple
 pip install pyobcomp
 ```
 
-## Quick Start
+## Hello World (YAML Configuration)
+
+The easiest way to get started is with a YAML configuration file:
+
+**1. Create a configuration file (`config.yaml`):**
+```yaml
+fields:
+  calories:
+    percentage: 10.0
+  protein:
+    percentage: 10.0
+    absolute: 2.0
+  verified_calculation:
+    required: true
+  source_notes:
+    ignore: true
+
+options:
+  normalize_types: true
+```
+
+**2. Use it in your Python code:**
+```python
+from pyobcomp import create_from_file
+
+# Create comparer directly from YAML file
+comparer = create_from_file('config.yaml')
+
+# Compare your objects
+expected = {"calories": 200, "protein": 15.0, "verified_calculation": True}
+actual = {"calories": 190, "protein": 14.0, "verified_calculation": True}
+
+result = comparer.compare(expected, actual)
+
+if result.matches:
+    print("✅ Objects match within tolerances!")
+else:
+    print(f"❌ Differences found: {result.summary}")
+    for field in result.fields:
+        if not field.passed:
+            print(f"  - {field.name}: {field.reason}")
+```
+
+## Quick Start (Direct Profile Creation)
+
+Here's a simple example building profiles directly in code:
 
 ```python
-from pyobcomp import ObjectComparator, ToleranceConfig, FieldConfig
+from pyobcomp import create, CompareProfile, FieldSettings, ComparisonOptions
 
-# Create a comparator with custom tolerances
-comparator = ObjectComparator(
-    tolerances={
-        'calories': ToleranceConfig(percentage=10.0),  # 10% tolerance
-        'protein': ToleranceConfig(percentage=10.0, absolute=2.0),  # 10% or 2.0, whichever is greater
-        'verified_calculation': FieldConfig(required=True),  # Must match exactly
-        'source_notes': FieldConfig(ignore=True),  # Ignore text fields
+# Create a comparison profile
+profile = CompareProfile(
+    fields={
+        'calories': FieldSettings(percentage=10.0),  # 10% tolerance
+        'protein': FieldSettings(percentage=10.0, absolute=2.0),  # 10% or 2.0, whichever is greater
+        'verified_calculation': FieldSettings(required=True),  # Must match exactly
+        'source_notes': FieldSettings(ignore=True),  # Ignore text fields
     },
-    normalize_types=True  # Handle 9 vs 9.0, 2.0 vs 2
+    options=ComparisonOptions(normalize_types=True)  # Handle 9 vs 9.0, 2.0 vs 2
 )
 
+# Create comparer from profile
+comparer = create(profile)
+
 # Compare objects
-result = comparator.compare(expected_data, actual_data)
+expected = {"calories": 200, "protein": 15.0, "verified_calculation": True}
+actual = {"calories": 190, "protein": 14.0, "verified_calculation": True}
+
+result = comparer.compare(expected, actual)
+
+if result.matches:
+    print("✅ Objects match within tolerances!")
+else:
+    print(f"❌ Differences found: {result.summary}")
+    for field in result.fields:
+        if not field.passed:
+            print(f"  - {field.name}: {field.reason}")
+```
+
+## Usage Examples
+
+```python
+from pyobcomp import create, CompareProfile, FieldSettings, ComparisonOptions
+
+# Create a comparison profile
+profile = CompareProfile(
+    fields={
+        'calories': FieldSettings(percentage=10.0),  # 10% tolerance
+        'protein': FieldSettings(percentage=10.0, absolute=2.0),  # 10% or 2.0, whichever is greater
+        'verified_calculation': FieldSettings(required=True),  # Must match exactly
+        'source_notes': FieldSettings(ignore=True),  # Ignore text fields
+    },
+    options=ComparisonOptions(normalize_types=True)  # Handle 9 vs 9.0, 2.0 vs 2
+)
+
+# Create comparer from profile
+comparer = create(profile)
+
+# Compare objects
+result = comparer.compare(expected_data, actual_data)
 
 if result.matches:
     print("Objects match within tolerances!")
@@ -55,7 +137,7 @@ else:
 Allows a percentage-based variance from the expected value.
 
 ```python
-ToleranceConfig(percentage=10.0)  # 10% tolerance
+FieldSettings(percentage=10.0)  # 10% tolerance
 # Expected: 100, Actual: 95 → PASS (within 10%)
 # Expected: 100, Actual: 85 → FAIL (outside 10%)
 ```
@@ -64,7 +146,7 @@ ToleranceConfig(percentage=10.0)  # 10% tolerance
 Allows a fixed absolute difference from the expected value.
 
 ```python
-ToleranceConfig(absolute=2.0)  # 2.0 absolute tolerance
+FieldSettings(absolute=2.0)  # 2.0 absolute tolerance
 # Expected: 100, Actual: 102 → PASS (within 2.0)
 # Expected: 100, Actual: 103 → FAIL (outside 2.0)
 ```
@@ -73,39 +155,56 @@ ToleranceConfig(absolute=2.0)  # 2.0 absolute tolerance
 Uses whichever tolerance is greater (more permissive).
 
 ```python
-ToleranceConfig(percentage=10.0, absolute=2.0)
+FieldSettings(percentage=10.0, absolute=2.0)
 # For 100: 10% = 10, absolute = 2.0 → uses 10 (more permissive)
 # For 5: 10% = 0.5, absolute = 2.0 → uses 2.0 (more permissive)
 ```
 
 ### Field Configuration
 
+Fields can be configured with different behaviors using `FieldSettings`:
+
+```python
+from pyobcomp import FieldSettings
+
+# Tolerance settings (for numerical comparisons)
+FieldSettings(percentage=10.0)  # 10% tolerance
+FieldSettings(absolute=2.0)     # 2.0 absolute tolerance
+FieldSettings(percentage=10.0, absolute=2.0)  # Combined tolerance
+
+# Behavior settings (for field presence/validation)
+FieldSettings(required=True)        # Must match exactly
+FieldSettings(required=False)       # Optional field
+FieldSettings(ignore=True)          # Skip field entirely
+FieldSettings(text_validation=True) # Only check not empty
+```
+
 #### Ignore Fields
 Fields that are completely ignored during comparison.
 
 ```python
-FieldConfig(ignore=True)
+FieldSettings(ignore=True)
 ```
 
 #### Required Fields
 Fields that must be present and match exactly (default behavior).
 
 ```python
-FieldConfig(required=True)
+FieldSettings(required=True)
 ```
 
 #### Optional Fields
 Fields that are compared if present but don't cause failure if missing.
 
 ```python
-FieldConfig(required=False)
+FieldSettings(required=False)
 ```
 
 #### Text Field Handling
 Special handling for text fields that only require non-empty values.
 
 ```python
-FieldConfig(text_validation=True)  # Only checks not None/empty
+FieldSettings(text_validation=True)  # Only checks not None/empty
 ```
 
 ### Type Normalization
@@ -113,10 +212,11 @@ Handle common type differences where values are logically equal.
 
 ```python
 # Enable type normalization for int/float differences
-comparator = ObjectComparator(
-    tolerances={...},
-    normalize_types=True  # 9 == 9.0, 2.0 == 2
+profile = CompareProfile(
+    fields={...},
+    options=ComparisonOptions(normalize_types=True)  # 9 == 9.0, 2.0 == 2
 )
+comparer = create(profile)
 ```
 
 ### Status Levels
@@ -132,11 +232,15 @@ Differences are categorized by status:
 The framework provides a clean, professional API for programmatic access:
 
 ```python
-from pyobcomp import ObjectComparator, ToleranceConfig, FieldConfig
-from pyobcomp.result import ComparisonStatus, Field
+from pyobcomp import create, CompareProfile, FieldSettings
+from pyobcomp.models import ComparisonStatus, FieldResult
+
+# Create profile and comparer
+profile = CompareProfile(fields={...})
+comparer = create(profile)
 
 # Compare objects
-result = comparator.compare(expected, actual)
+result = comparer.compare(expected, actual)
 
 # Overall result
 assert result.matches == True  # Overall pass/fail
@@ -183,7 +287,7 @@ class ComparisonStatus(Enum):
     ARRAY_LENGTH_MISMATCH = "array_length_mismatch"  # Array length differs
 ```
 
-**Field Properties:**
+**FieldResult Properties:**
 - `name: str` - Field path (e.g., "items[0].nutrition.calories")
 - `passed: bool` - Simple pass/fail boolean
 - `status: ComparisonStatus` - Detailed status enum
@@ -307,13 +411,104 @@ options:
 ### Using Declarative Configuration
 
 ```python
-from pyobcomp import ObjectComparator
+from pyobcomp import create_from_file
 
-# Load from YAML
-comparator = ObjectComparator.from_yaml('comparison_config.yaml')
+# Create comparer directly from YAML
+comparer = create_from_file('comparison_config.yaml')
 
 # Use normally
-result = comparator.compare(expected, actual)
+result = comparer.compare(expected, actual)
+```
+
+### Advanced Configuration with CompareProfile
+
+```python
+from pyobcomp import load_profile, create, CompareProfile, FieldSettings
+
+# Load profile and modify programmatically
+profile = load_profile('comparison_config.yaml')
+profile.options.debug = True
+
+# Create comparer from modified profile
+comparer = create(profile)
+```
+
+### Profile Template Extension
+
+A powerful pattern is to load a base profile template and extend it programmatically for specific test scenarios:
+
+```python
+from pyobcomp import load_profile, create, FieldSettings
+
+# Load base nutritional analysis profile
+base_profile = load_profile('nutrition_base.yaml')
+
+# Create a strict version for critical tests
+strict_profile = base_profile.model_copy()
+strict_profile.fields.update({
+    'items.*.nutrition.calories': FieldSettings(percentage=5.0),  # Stricter tolerance
+    'items.*.nutrition.protein': FieldSettings(percentage=5.0, absolute=1.0),
+    'items.*.verified_calculation': FieldSettings(required=True),  # Must be verified
+})
+strict_profile.options.debug = True  # Enable debug for strict tests
+
+# Create a lenient version for exploratory tests
+lenient_profile = base_profile.model_copy()
+lenient_profile.fields.update({
+    'items.*.nutrition.calories': FieldSettings(percentage=20.0),  # More lenient
+    'items.*.nutrition.protein': FieldSettings(percentage=25.0, absolute=5.0),
+    'items.*.confidence': FieldSettings(ignore=True),  # Ignore confidence scores
+    'meta.*': FieldSettings(ignore=True),  # Ignore all metadata
+})
+lenient_profile.options.normalize_types = True
+
+# Create comparers for different test scenarios
+strict_comparer = create(strict_profile)
+lenient_comparer = create(lenient_profile)
+
+# Use in different test contexts
+def test_critical_nutrition_data():
+    result = strict_comparer.compare(expected, actual)
+    assert result.matches, f"Critical test failed: {result.summary}"
+
+def test_exploratory_analysis():
+    result = lenient_comparer.compare(expected, actual)
+    # More permissive - just log differences
+    if not result.matches:
+        print(f"Differences found: {result.summary}")
+```
+
+**Base Profile Template (`nutrition_base.yaml`):**
+```yaml
+fields:
+  # Standard nutritional tolerances
+  "items.*.nutrition.calories": 
+    percentage: 10.0
+  "items.*.nutrition.protein": 
+    percentage: 10.0
+    absolute: 2.0
+  "items.*.nutrition.carbs": 
+    percentage: 10.0
+    absolute: 2.0
+  "items.*.nutrition.fat": 
+    percentage: 10.0
+    absolute: 2.0
+  
+  # Text fields
+  "items.*.food_name": 
+    text_validation: true
+  "items.*.user_description": 
+    text_validation: true
+  
+  # Optional fields
+  "items.*.confidence": 
+    required: false
+  "items.*.fiber": 
+    required: false
+
+options:
+  normalize_types: true
+  debug: false
 ```
 
 ### Configuration Schema
@@ -345,12 +540,132 @@ options:
 - **Required field**: `required: true` = Must match exactly
 - **Optional field**: `required: false` = Missing is OK
 
+### Schema Validation
+
+PyObComp uses Pydantic for automatic schema validation of YAML configuration files. **Validation always happens** when loading YAML files - there's no separate validation step needed.
+
+#### Automatic Validation
+
+```python
+from pyobcomp import load_profile, create_from_file
+
+# Both of these automatically validate the YAML
+try:
+    profile = load_profile('my_config.yaml')  # ✅ Validates on load
+    comparer = create_from_file('my_config.yaml')  # ✅ Validates on load
+    print("✅ Configuration is valid!")
+except FileNotFoundError:
+    print("❌ Configuration file not found")
+except ValueError as e:
+    print(f"❌ Invalid configuration: {e}")
+```
+
+#### Validation Features
+
+**Automatic Validation:**
+- **Type checking**: Ensures `percentage` and `absolute` are numbers ≥ 0
+- **Mutual exclusivity**: Prevents tolerance and behavior settings on same field
+- **Required fields**: Validates that at least one tolerance is specified when using tolerance settings
+- **Boolean validation**: Ensures `required`, `ignore`, `text_validation` are boolean values
+- **Options validation**: Validates `normalize_types` and `debug` are boolean
+
+**Common Validation Errors:**
+```yaml
+# ❌ INVALID: Both tolerance and behavior settings
+"calories":
+  percentage: 10.0
+  required: true  # Error: Cannot have both
+
+# ❌ INVALID: No tolerance specified
+"protein":
+  percentage: null
+  absolute: null  # Error: At least one tolerance required
+
+# ❌ INVALID: Wrong type
+"calories":
+  percentage: "10%"  # Error: Must be number
+
+# ✅ VALID: Correct configuration
+"calories":
+  percentage: 10.0
+  absolute: 2.0
+```
+
+#### Validation in CI/CD
+
+```python
+# validate_configs.py
+import sys
+from pathlib import Path
+from pyobcomp import load_profile
+
+def validate_all_configs():
+    """Validate all YAML configuration files."""
+    config_dir = Path('configs')
+    errors = []
+    
+    for config_file in config_dir.glob('*.yaml'):
+        try:
+            load_profile(config_file)  # This automatically validates
+            print(f"✅ {config_file.name}")
+        except Exception as e:
+            error_msg = f"❌ {config_file.name}: {e}"
+            print(error_msg)
+            errors.append(error_msg)
+    
+    if errors:
+        print(f"\nFound {len(errors)} configuration errors:")
+        for error in errors:
+            print(f"  {error}")
+        sys.exit(1)
+    else:
+        print("\n🎉 All configurations are valid!")
+
+if __name__ == "__main__":
+    validate_all_configs()
+```
+
+#### JSON Schema Export
+
+For external validation tools, you can export the Pydantic schema as JSON Schema:
+
+```python
+from pyobcomp.models import CompareProfile
+import json
+
+# Export schema for external validation
+schema = CompareProfile.schema()
+with open('pyobcomp_schema.json', 'w') as f:
+    json.dump(schema, f, indent=2)
+```
+
 ### Benefits of Declarative Configuration
 
 - **Version Control**: Configuration changes are tracked in git
 - **Non-Technical Users**: Business users can modify tolerances
 - **Reusability**: Same config across multiple test suites
 - **Documentation**: Configuration serves as living documentation
+
+#### Command Line Validation
+
+You can also validate configurations from the command line:
+
+```bash
+# Validate a single file
+python -c "from pyobcomp import load_profile; load_profile('config.yaml')"
+
+# Validate all YAML files in a directory
+python -c "
+from pathlib import Path
+from pyobcomp import load_profile
+for f in Path('configs').glob('*.yaml'):
+    try:
+        load_profile(f)
+        print(f'✅ {f.name}')
+    except Exception as e:
+        print(f'❌ {f.name}: {e}')
+"
+```
 
 ## Advanced Usage
 
@@ -372,12 +687,13 @@ expected = {
 }
 
 # Tolerances apply to nested fields
-comparator = ObjectComparator(
-    tolerances={
-        'items.*.nutrition.calories': ToleranceConfig(percentage=5.0),
-        'items.*.nutrition.protein': ToleranceConfig(absolute=1.0),
+profile = CompareProfile(
+    fields={
+        'items.*.nutrition.calories': FieldSettings(percentage=5.0),
+        'items.*.nutrition.protein': FieldSettings(absolute=1.0),
     }
 )
+comparer = create(profile)
 ```
 
 ### Custom Field Paths
@@ -385,11 +701,11 @@ comparator = ObjectComparator(
 Use dot notation for nested field paths:
 
 ```python
-tolerances = {
-    'items.*.nutrition.calories': ToleranceConfig(percentage=10.0),
-    'items.*.standard_serving.nutrition.protein': ToleranceConfig(absolute=2.0),
-    'meta.model': FieldConfig(ignore=True),  # Ignore model name
-    'meta.time': FieldConfig(ignore=True),   # Ignore timing
+fields = {
+    'items.*.nutrition.calories': FieldSettings(percentage=10.0),
+    'items.*.standard_serving.nutrition.protein': FieldSettings(absolute=2.0),
+    'meta.model': FieldSettings(ignore=True),  # Ignore model name
+    'meta.time': FieldSettings(ignore=True),   # Ignore timing
 }
 ```
 
@@ -405,11 +721,11 @@ actual_items = [{"calories": 95}, {"calories": 210}]
 # Both items will be compared with the same tolerance settings
 ```
 
-## Real-World Example: AI Food Log Testing
+## Real-World Example: Food Log Testing
 
-Here's how you might use this framework to test AI-generated nutritional analysis. Based on actual test failures, here are the typical differences you'll encounter:
+Here's how you might use this framework to test nutritional analysis responses. Based on actual test failures, here are the typical differences you'll encounter:
 
-**Typical AI Response Differences:**
+**Typical Response Differences:**
 - Nutritional values vary slightly (calories: 400→380, protein: 16→14)
 - Type differences (confidence_score: 9→9.0, standard_servings: 2.0→2)
 - Boolean flags differ (verified_calculation: true→false)
@@ -447,65 +763,66 @@ source_notes        | "Assumed..." | "Nutrition..." | PASS  (ignore)
 **Framework Configuration:**
 
 ```python
-from pyobcomp import ObjectComparator, ToleranceConfig, FieldConfig
+from pyobcomp import create, CompareProfile, FieldSettings, ComparisonOptions
 
 def test_meal_analysis_response():
     # Configure tolerances for nutritional data
-    comparator = ObjectComparator(
-        tolerances={
+    profile = CompareProfile(
+        fields={
             # Nutritional values with specific tolerances
-            'items.*.nutrition.calories': ToleranceConfig(percentage=10.0),
-            'items.*.nutrition.protein': ToleranceConfig(percentage=10.0, absolute=2.0),
-            'items.*.nutrition.carbs': ToleranceConfig(percentage=10.0, absolute=2.0),
-            'items.*.nutrition.fat': ToleranceConfig(percentage=10.0, absolute=2.0),
+            'items.*.nutrition.calories': FieldSettings(percentage=10.0),
+            'items.*.nutrition.protein': FieldSettings(percentage=10.0, absolute=2.0),
+            'items.*.nutrition.carbs': FieldSettings(percentage=10.0, absolute=2.0),
+            'items.*.nutrition.fat': FieldSettings(percentage=10.0, absolute=2.0),
             
             # Consumed nutrition with same tolerances
-            'items.*.consumed.nutrition.calories': ToleranceConfig(percentage=10.0),
-            'items.*.consumed.nutrition.protein': ToleranceConfig(percentage=10.0, absolute=2.0),
+            'items.*.consumed.nutrition.calories': FieldSettings(percentage=10.0),
+            'items.*.consumed.nutrition.protein': FieldSettings(percentage=10.0, absolute=2.0),
             
             # Totals with same tolerances
-            'totals.calories': ToleranceConfig(percentage=10.0),
-            'totals.protein': ToleranceConfig(percentage=10.0, absolute=2.0),
+            'totals.calories': FieldSettings(percentage=10.0),
+            'totals.protein': FieldSettings(percentage=10.0, absolute=2.0),
             
             # Critical fields - must match exactly
-            'items.*.verified_calculation': FieldConfig(required=True),
-            'verified_calculation': FieldConfig(required=True),
+            'items.*.verified_calculation': FieldSettings(required=True),
+            'verified_calculation': FieldSettings(required=True),
             
             # Text fields - only check they're not empty
-            'items.*.food_name': FieldConfig(text_validation=True),
-            'items.*.user_description': FieldConfig(text_validation=True),
+            'items.*.food_name': FieldSettings(text_validation=True),
+            'items.*.user_description': FieldSettings(text_validation=True),
             
             # Optional fields - missing is OK
-            'items.*.confidence': FieldConfig(required=False),
-            'items.*.fiber': FieldConfig(required=False),
+            'items.*.confidence': FieldSettings(required=False),
+            'items.*.fiber': FieldSettings(required=False),
             
             # Ignore fields that vary but don't matter
-            'items.*.source_notes': FieldConfig(ignore=True),
-            'meta.time': FieldConfig(ignore=True),
-            'meta.provider': FieldConfig(ignore=True),
+            'items.*.source_notes': FieldSettings(ignore=True),
+            'meta.time': FieldSettings(ignore=True),
+            'meta.provider': FieldSettings(ignore=True),
             
             # Optional objects - missing is OK
-            'meta': FieldConfig(required=False),
+            'meta': FieldSettings(required=False),
         },
         # Enable type normalization (9 vs 9.0, 2.0 vs 2)
-        normalize_types=True
+        options=ComparisonOptions(normalize_types=True)
     )
+    comparer = create(profile)
     
     # Load test data
     expected = load_expected_response()
-    actual = ai_service.analyze_meal("2 servings of peanut butter")
+    actual = service.analyze_meal("2 servings of peanut butter")
     
     # Compare with detailed reporting
-    result = comparator.compare(expected, actual)
+    result = comparer.compare(expected, actual)
     
     if not result.matches:
-        print("AI response doesn't match expected data:")
+        print("Response doesn't match expected data:")
         print(result.format_table(detail='failures'))
         
         # Fail the test
         assert False, f"Comparison failed: {result.summary}"
     
-    print("✅ AI response matches expected data within tolerances!")
+    print("✅ Response matches expected data within tolerances!")
 ```
 
 ## Configuration Examples
@@ -514,50 +831,53 @@ def test_meal_analysis_response():
 For critical data where exact matches are required:
 
 ```python
-comparator = ObjectComparator(
-    tolerances={
-        'id': FieldConfig(required=True),  # Must match exactly
-        'status': FieldConfig(required=True),
+profile = CompareProfile(
+    fields={
+        'id': FieldSettings(required=True),  # Must match exactly
+        'status': FieldSettings(required=True),
     }
 )
+comparer = create(profile)
 ```
 
 ### Lenient Comparison
 For data where approximate matches are acceptable:
 
 ```python
-comparator = ObjectComparator(
-    tolerances={
-        '*.calories': ToleranceConfig(percentage=20.0),
-        '*.protein': ToleranceConfig(percentage=25.0, absolute=5.0),
-        '*.description': FieldConfig(ignore=True),
-        '*.notes': FieldConfig(ignore=True),
+profile = CompareProfile(
+    fields={
+        '*.calories': FieldSettings(percentage=20.0),
+        '*.protein': FieldSettings(percentage=25.0, absolute=5.0),
+        '*.description': FieldSettings(ignore=True),
+        '*.notes': FieldSettings(ignore=True),
     }
 )
+comparer = create(profile)
 ```
 
 ### Mixed Strictness
 Different tolerances for different types of data:
 
 ```python
-comparator = ObjectComparator(
-    tolerances={
+profile = CompareProfile(
+    fields={
         # Critical fields - strict
-        'status': FieldConfig(required=True),
-        'verified_calculation': FieldConfig(required=True),
+        'status': FieldSettings(required=True),
+        'verified_calculation': FieldSettings(required=True),
         
         # Nutritional data - moderate tolerance
-        '*.nutrition.calories': ToleranceConfig(percentage=10.0),
-        '*.nutrition.protein': ToleranceConfig(percentage=15.0, absolute=2.0),
+        '*.nutrition.calories': FieldSettings(percentage=10.0),
+        '*.nutrition.protein': FieldSettings(percentage=15.0, absolute=2.0),
         
         # Text fields - lenient
-        '*.food_name': FieldConfig(text_validation=True),
-        '*.source_notes': FieldConfig(ignore=True),
+        '*.food_name': FieldSettings(text_validation=True),
+        '*.source_notes': FieldSettings(ignore=True),
         
         # Metadata - ignore
-        'meta.*': FieldConfig(ignore=True),
+        'meta.*': FieldSettings(ignore=True),
     }
 )
+comparer = create(profile)
 ```
 
 ## Difference Reporting
@@ -567,7 +887,7 @@ The framework provides both programmatic and textual reporting capabilities:
 ### Programmatic API
 
 ```python
-result = comparator.compare(expected, actual)
+result = comparer.compare(expected, actual)
 
 # Overall result
 print(f"Overall match: {result.matches}")
@@ -703,22 +1023,23 @@ The framework gracefully handles various error conditions:
 
 ```python
 import pytest
-from pyobcomp import ObjectComparator
+from pyobcomp import create, CompareProfile, FieldSettings
 
 @pytest.fixture
-def nutrition_comparator():
-    return ObjectComparator(
-        tolerances={
-            '*.nutrition.calories': ToleranceConfig(percentage=10.0),
-            '*.nutrition.protein': ToleranceConfig(percentage=15.0, absolute=2.0),
+def nutrition_comparer():
+    profile = CompareProfile(
+        fields={
+            '*.nutrition.calories': FieldSettings(percentage=10.0),
+            '*.nutrition.protein': FieldSettings(percentage=15.0, absolute=2.0),
         }
     )
+    return create(profile)
 
-def test_ai_nutrition_analysis(nutrition_comparator):
+def test_nutrition_analysis(nutrition_comparer):
     expected = load_expected_data()
-    actual = ai_service.analyze("test meal")
+    actual = service.analyze("test meal")
     
-    result = nutrition_comparator.compare(expected, actual)
+    result = nutrition_comparer.compare(expected, actual)
     assert result.matches, f"Comparison failed: {result.summary}"
 ```
 
@@ -729,12 +1050,13 @@ def assert_nutrition_matches(expected, actual, tolerances=None):
     """Custom assertion for nutritional data comparison."""
     if tolerances is None:
         tolerances = {
-            '*.nutrition.calories': ToleranceConfig(percentage=10.0),
-            '*.nutrition.protein': ToleranceConfig(percentage=15.0, absolute=2.0),
+            '*.nutrition.calories': FieldSettings(percentage=10.0),
+            '*.nutrition.protein': FieldSettings(percentage=15.0, absolute=2.0),
         }
     
-    comparator = ObjectComparator(tolerances=tolerances)
-    result = comparator.compare(expected, actual)
+    profile = CompareProfile(fields=tolerances)
+    comparer = create(profile)
+    result = comparer.compare(expected, actual)
     
     if not result.matches:
         # Custom error formatting
@@ -758,30 +1080,31 @@ def assert_nutrition_matches(expected, actual, tolerances=None):
 
 ## Common Patterns
 
-### AI Food Log Testing
+### Food Log Testing
 ```python
 # Typical configuration for nutritional analysis testing
-comparator = ObjectComparator(
-    tolerances={
+profile = CompareProfile(
+    fields={
         # Macros with combined tolerances
-        '*.nutrition.calories': ToleranceConfig(percentage=10.0),
-        '*.nutrition.protein': ToleranceConfig(percentage=10.0, absolute=2.0),
-        '*.nutrition.carbs': ToleranceConfig(percentage=10.0, absolute=2.0),
-        '*.nutrition.fat': ToleranceConfig(percentage=10.0, absolute=2.0),
+        '*.nutrition.calories': FieldSettings(percentage=10.0),
+        '*.nutrition.protein': FieldSettings(percentage=10.0, absolute=2.0),
+        '*.nutrition.carbs': FieldSettings(percentage=10.0, absolute=2.0),
+        '*.nutrition.fat': FieldSettings(percentage=10.0, absolute=2.0),
         
         # Critical flags - must match exactly
-        '*.verified_calculation': FieldConfig(required=True),
+        '*.verified_calculation': FieldSettings(required=True),
         
         # Text fields - only check not empty
-        '*.food_name': FieldConfig(text_validation=True),
-        '*.user_description': FieldConfig(text_validation=True),
+        '*.food_name': FieldSettings(text_validation=True),
+        '*.user_description': FieldSettings(text_validation=True),
         
         # Ignore variable fields
-        '*.source_notes': FieldConfig(ignore=True),
-        'meta.*': FieldConfig(ignore=True),
+        '*.source_notes': FieldSettings(ignore=True),
+        'meta.*': FieldSettings(ignore=True),
     },
-    normalize_types=True  # Handle 9 vs 9.0, 2.0 vs 2
+    options=ComparisonOptions(normalize_types=True)  # Handle 9 vs 9.0, 2.0 vs 2
 )
+comparer = create(profile)
 ```
 
 ## Limitations
@@ -807,13 +1130,13 @@ For these cases, you should:
 A: Check your tolerance configuration. The framework is strict by default - you need to configure tolerances for numerical fields. Use `result.format_table()` to see a clear summary.
 
 **Q: How do I handle optional fields that might be missing?**
-A: Use `FieldConfig(required=False)` for fields that may or may not be present.
+A: Use `FieldSettings(required=False)` for fields that may or may not be present.
 
 **Q: Can I compare arrays of different lengths?**
 A: Yes, but it will report the length difference as an error. Configure array length tolerance if needed.
 
 **Q: How do I ignore certain fields completely?**
-A: Use `FieldConfig(ignore=True)` for fields you want to skip entirely.
+A: Use `FieldSettings(ignore=True)` for fields you want to skip entirely.
 
 **Q: How do I get a cleaner output format?**
 A: Use `result.format_table()` instead of iterating through `result.fields`. It provides a compact tabular view with grouping.
@@ -823,10 +1146,11 @@ A: Use `result.format_table()` instead of iterating through `result.fields`. It 
 Enable debug mode for detailed comparison logging:
 
 ```python
-comparator = ObjectComparator(
-    tolerances={...},
-    debug=True  # Enables detailed logging
+profile = CompareProfile(
+    fields={...},
+    options=ComparisonOptions(debug=True)  # Enables detailed logging
 )
+comparer = create(profile)
 ```
 
 This will log every comparison step, making it easier to understand why comparisons fail.

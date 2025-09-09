@@ -1,0 +1,9 @@
+fields:
+  calories:
+    percentage: 5.0
+  protein:
+    absolute: 2.0
+  carbs:
+    required: true
+options:
+  normalize_types: true

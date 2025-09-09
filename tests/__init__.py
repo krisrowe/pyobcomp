@@ -1,1 +1,3 @@
-# Tests for PyObComp
+"""
+Test suite for PyObComp.
+"""

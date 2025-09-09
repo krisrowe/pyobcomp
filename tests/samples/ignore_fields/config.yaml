@@ -1,0 +1,9 @@
+fields:
+  calories:
+    percentage: 5.0
+  protein:
+    ignore: true
+  sodium:
+    ignore: true
+  carbs:
+    required: true

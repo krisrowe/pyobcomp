@@ -1,0 +1,7 @@
+fields:
+  name:
+    text_validation: true
+  description:
+    text_validation: true
+  calories:
+    percentage: 5.0

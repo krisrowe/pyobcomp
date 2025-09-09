@@ -1,0 +1,5 @@
+fields:
+  calories:
+    percentage: 5.0
+  protein:
+    percentage: 10.0

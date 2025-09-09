@@ -1,0 +1,7 @@
+fields:
+  calories:
+    required: true
+  protein:
+    required: true
+  carbs:
+    required: true
