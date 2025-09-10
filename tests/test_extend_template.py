@@ -6,7 +6,7 @@ import pytest
 import tempfile
 import os
 from pyobcomp import load_profile, create, FieldSettings
-from .helpers.helper import Helper
+from .helpers.config import Helper
 
 
 class TestExtendTemplate:

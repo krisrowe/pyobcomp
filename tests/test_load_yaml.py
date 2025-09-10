@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from pyobcomp import load_profile, create_from_file
 from pyobcomp.models import FieldSettings, ComparisonOptions
-from .helpers.helper import Helper
+from .helpers.config import Helper
 
 
 class TestLoadYAML:
