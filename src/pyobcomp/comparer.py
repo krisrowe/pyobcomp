@@ -7,7 +7,7 @@ import re
 
 from .models import (
     ToleranceConfig, FieldConfig, ComparisonOptions, 
-    ComparisonResult, FieldResult, ComparisonStatus
+    FullComparisonResult, FieldResult, ComparisonStatus
 )
 
 
@@ -28,7 +28,7 @@ class Comparer:
         self.tolerances = tolerances or {}
         self.options = options or ComparisonOptions()
     
-    def compare(self, expected: Any, actual: Any) -> ComparisonResult:
+    def compare(self, expected: Any, actual: Any) -> FullComparisonResult:
         """Compare two objects.
         
         Args:
@@ -45,13 +45,13 @@ class Comparer:
         result = self._compare_values("", expected, actual, fields)
         all_passed = result.matches
         
-        return ComparisonResult(
+        return FullComparisonResult(
             matches=all_passed,
             summary=f"Comparison {'passed' if all_passed else 'failed'} with {len([f for f in fields if not f.passed])} differences",
             fields=fields
         )
     
-    def _compare_values(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> ComparisonResult:
+    def _compare_values(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> FullComparisonResult:
         """Compare two values at a specific path."""
         # Check if this field should be ignored
         field_config = self._get_field_config(path)
@@ -64,7 +64,7 @@ class Comparer:
                 actual=actual,
                 reason="Field configured to ignore"
             ))
-            return ComparisonResult(matches=True, summary="Field ignored", fields=[])
+            return FullComparisonResult(matches=True, summary="Field ignored", fields=[])
         
         # Handle missing values
         if expected is None and actual is None:
@@ -76,7 +76,7 @@ class Comparer:
                 actual=actual,
                 reason="Both values are None"
             ))
-            return ComparisonResult(matches=True, summary="Both None", fields=[])
+            return FullComparisonResult(matches=True, summary="Both None", fields=[])
         
         if expected is None:
             if field_config and hasattr(field_config, 'required') and not field_config.required:
@@ -88,7 +88,7 @@ class Comparer:
                     actual=actual,
                     reason="Optional field missing in expected"
                 ))
-                return ComparisonResult(matches=True, summary="Optional field missing", fields=[])
+                return FullComparisonResult(matches=True, summary="Optional field missing", fields=[])
             else:
                 fields.append(FieldResult(
                     name=path or "root",
@@ -98,7 +98,7 @@ class Comparer:
                     actual=actual,
                     reason="Required field missing in expected"
                 ))
-                return ComparisonResult(matches=False, summary="Required field missing", fields=[])
+                return FullComparisonResult(matches=False, summary="Required field missing", fields=[])
         
         if actual is None:
             if field_config and hasattr(field_config, 'required') and not field_config.required:
@@ -110,7 +110,7 @@ class Comparer:
                     actual=actual,
                     reason="Optional field missing in actual"
                 ))
-                return ComparisonResult(matches=True, summary="Optional field missing", fields=[])
+                return FullComparisonResult(matches=True, summary="Optional field missing", fields=[])
             else:
                 fields.append(FieldResult(
                     name=path or "root",
@@ -120,7 +120,7 @@ class Comparer:
                     actual=actual,
                     reason="Required field missing in actual"
                 ))
-                return ComparisonResult(matches=False, summary="Required field missing", fields=[])
+                return FullComparisonResult(matches=False, summary="Required field missing", fields=[])
         
         # Type checking
         if not self._types_compatible(expected, actual):
@@ -134,7 +134,7 @@ class Comparer:
                 expected_type=type(expected).__name__,
                 actual_type=type(actual).__name__
             ))
-            return ComparisonResult(matches=False, summary="Type mismatch", fields=[])
+            return FullComparisonResult(matches=False, summary="Type mismatch", fields=[])
         
         # Handle different data types
         if isinstance(expected, dict) and isinstance(actual, dict):
@@ -144,7 +144,7 @@ class Comparer:
         else:
             return self._compare_primitives(path, expected, actual, fields)
     
-    def _compare_dicts(self, path: str, expected: Dict, actual: Dict, fields: List[FieldResult]) -> ComparisonResult:
+    def _compare_dicts(self, path: str, expected: Dict, actual: Dict, fields: List[FieldResult]) -> FullComparisonResult:
         """Compare two dictionaries."""
         all_passed = True
         all_keys = set(expected.keys()) | set(actual.keys())
@@ -158,9 +158,9 @@ class Comparer:
             if not result.matches:
                 all_passed = False
         
-        return ComparisonResult(matches=all_passed, summary="Dict comparison", fields=[])
+        return FullComparisonResult(matches=all_passed, summary="Dict comparison", fields=[])
     
-    def _compare_lists(self, path: str, expected: List, actual: List, fields: List[FieldResult]) -> ComparisonResult:
+    def _compare_lists(self, path: str, expected: List, actual: List, fields: List[FieldResult]) -> FullComparisonResult:
         """Compare two lists."""
         all_passed = True
         
@@ -211,9 +211,9 @@ class Comparer:
                     ))
                     all_passed = False
         
-        return ComparisonResult(matches=all_passed, summary="List comparison", fields=[])
+        return FullComparisonResult(matches=all_passed, summary="List comparison", fields=[])
     
-    def _compare_primitives(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> ComparisonResult:
+    def _compare_primitives(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> FullComparisonResult:
         """Compare primitive values (numbers, strings, booleans)."""
         # Check for exact match first
         if expected == actual:
@@ -225,7 +225,7 @@ class Comparer:
                 actual=actual,
                 reason="Values match exactly"
             ))
-            return ComparisonResult(matches=True, summary="Exact match", fields=[])
+            return FullComparisonResult(matches=True, summary="Exact match", fields=[])
         
         # Check if this is a numerical comparison with tolerance
         if self._is_numerical(expected) and self._is_numerical(actual):
@@ -244,7 +244,7 @@ class Comparer:
                     actual=actual,
                     reason="Text validation passed (non-empty)"
                 ))
-                return ComparisonResult(matches=True, summary="Text validation passed", fields=[])
+                return FullComparisonResult(matches=True, summary="Text validation passed", fields=[])
             else:
                 fields.append(FieldResult(
                     name=path or "root",
@@ -254,7 +254,7 @@ class Comparer:
                     actual=actual,
                     reason="Text validation failed (empty or None)"
                 ))
-                return ComparisonResult(matches=False, summary="Text validation failed", fields=[])
+                return FullComparisonResult(matches=False, summary="Text validation failed", fields=[])
         
         # Default: exact match required
         fields.append(FieldResult(
@@ -265,9 +265,9 @@ class Comparer:
             actual=actual,
             reason=f"Value mismatch: expected {expected}, got {actual}"
         ))
-        return ComparisonResult(matches=False, summary="Value mismatch", fields=[])
+        return FullComparisonResult(matches=False, summary="Value mismatch", fields=[])
     
-    def _compare_numerical_with_tolerance(self, path: str, expected: float, actual: float, fields: List[FieldResult]) -> ComparisonResult:
+    def _compare_numerical_with_tolerance(self, path: str, expected: float, actual: float, fields: List[FieldResult]) -> FullComparisonResult:
         """Compare numerical values with tolerance settings."""
         field_config = self._get_field_config(path)
         
@@ -281,7 +281,7 @@ class Comparer:
                 actual=actual,
                 reason=f"Value mismatch: expected {expected}, got {actual} (no tolerance configured)"
             ))
-            return ComparisonResult(matches=False, summary="Value mismatch", fields=[])
+            return FullComparisonResult(matches=False, summary="Value mismatch", fields=[])
         
         # Calculate tolerances
         percentage_tolerance = None
@@ -321,7 +321,7 @@ class Comparer:
                 actual=actual,
                 reason=f"Value mismatch: expected {expected}, got {actual} (no tolerance configured)"
             ))
-            return ComparisonResult(matches=False, summary="Value mismatch", fields=[])
+            return FullComparisonResult(matches=False, summary="Value mismatch", fields=[])
         
         # Check if within tolerance
         difference = abs(expected - actual)
@@ -335,7 +335,7 @@ class Comparer:
                 reason=f"Within tolerance ({tolerance_type})",
                 tolerance_applied=tolerance_type
             ))
-            return ComparisonResult(matches=True, summary="Within tolerance", fields=[])
+            return FullComparisonResult(matches=True, summary="Within tolerance", fields=[])
         else:
             fields.append(FieldResult(
                 name=path or "root",
@@ -346,7 +346,7 @@ class Comparer:
                 reason=f"Outside tolerance ({tolerance_type}): difference {difference:.2f} > tolerance {tolerance:.2f}",
                 tolerance_applied=tolerance_type
             ))
-            return ComparisonResult(matches=False, summary="Outside tolerance", fields=[])
+            return FullComparisonResult(matches=False, summary="Outside tolerance", fields=[])
     
     def _get_field_config(self, path: str) -> Optional[Union[ToleranceConfig, FieldConfig]]:
         """Get field configuration for a given path."""

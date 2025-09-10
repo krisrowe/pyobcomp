@@ -81,9 +81,7 @@ class FieldResult(BaseModel):
 
 
 class ComparisonResult(BaseModel):
-    """Result of an object comparison."""
-    matches: bool = Field(..., description="Overall pass/fail result")
-    summary: str = Field(..., description="Human-readable summary")
+    """Base result class for filtered comparison results."""
     fields: List[FieldResult] = Field(default_factory=list, description="Individual field results")
     
     def format_table(self, detail: str = 'failures') -> str:
@@ -93,7 +91,25 @@ class ComparisonResult(BaseModel):
             detail: Level of detail ('failures', 'differences', 'all')
         """
         # TODO: Implement table formatting
-        return f"Comparison result: {self.summary}"
+        return f"Comparison result: {len(self.fields)} fields"
+
+
+class FullComparisonResult(ComparisonResult):
+    """Complete result of an object comparison with overall status."""
+    matches: bool = Field(..., description="Overall pass/fail result")
+    summary: str = Field(..., description="Human-readable summary")
+    
+    def filter(self, status_filter: 'ComparisonStatus') -> ComparisonResult:
+        """Filter results by comparison status.
+        
+        Args:
+            status_filter: Status to filter by
+            
+        Returns:
+            Filtered ComparisonResult with only fields matching the status
+        """
+        filtered_fields = [f for f in self.fields if f.status == status_filter]
+        return ComparisonResult(fields=filtered_fields)
 
 
 class FieldSettings(BaseModel):
