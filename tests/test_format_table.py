@@ -35,7 +35,6 @@ class TestFormat:
         
         self.comparer = create(self.profile)
     
-    @pytest.mark.skip(reason="format_table method not yet implemented")
     def test_level_fails(self):
         """Test that only failed fields are shown in output."""
         result = self.comparer.compare(self.expected_data, self.actual_data)
@@ -49,7 +48,6 @@ class TestFormat:
         # Verify the comparison actually failed
         assert result.matches == False
     
-    @pytest.mark.skip(reason="format_table method not yet implemented")
     def test_level_diffs(self):
         """Test that all differences (including within tolerance) are shown using filter."""
         result = self.comparer.compare(self.expected_data, self.actual_data)
@@ -67,7 +65,6 @@ class TestFormat:
         assert 'carbs' in output
         assert 'protein' not in output
     
-    @pytest.mark.skip(reason="format_table method not yet implemented")
     def test_level_all(self):
         """Test that all fields are shown in output using filter."""
         result = self.comparer.compare(self.expected_data, self.actual_data)

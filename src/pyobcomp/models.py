@@ -77,8 +77,8 @@ class LoggingFormat(str, Enum):
 
 class LoggingConfig(BaseModel):
     """Configuration for comparison logging."""
-    enabled: bool = Field(False, description="Enable automatic comparison logging")
-    when: Literal["never", "always", "on_fail"] = Field("never", description="When to log comparisons")
+    enabled: Optional[bool] = Field(None, description="Enable logging (None=auto-detect from logger, True/False=explicit)")
+    when: Literal["never", "always", "on_fail"] = Field("on_fail", description="When to log comparisons")
     level: LoggingLevel = Field(LoggingLevel.FAILURES, description="Level of detail to log")
     format: LoggingFormat = Field(LoggingFormat.TABLE, description="Output format for logs")
     logger_name: str = Field("pyobcomp.comparison", description="Logger name to use")
@@ -118,8 +118,81 @@ class ComparisonResult(BaseModel):
         Args:
             detail: Level of detail ('failures', 'differences', 'all')
         """
-        # TODO: Implement table formatting
-        return f"Comparison result: {len(self.fields)} fields"
+        if not self.fields:
+            return "No fields to display"
+        
+        # Filter fields based on detail level
+        if detail == 'failures':
+            # Only show fields that failed (not identical and not in tolerance)
+            filtered_fields = [f for f in self.fields if f.status not in ['identical', 'in_tolerance']]
+        elif detail == 'differences':
+            # Show fields that are different (not identical)
+            filtered_fields = [f for f in self.fields if f.status != 'identical']
+        elif detail == 'all':
+            # Show all fields
+            filtered_fields = self.fields
+        else:
+            raise ValueError(f"Invalid detail level: {detail}. Must be 'failures', 'differences', or 'all'")
+        
+        if not filtered_fields:
+            return "No fields match the specified detail level"
+        
+        # Create table header
+        header = "Field Name          | Status     | Expected | Actual   | Reason"
+        separator = "-" * len(header)
+        
+        # Create table rows
+        rows = []
+        for field in filtered_fields:
+            # Truncate long values for display
+            expected_str = str(field.expected)[:8] + "..." if len(str(field.expected)) > 8 else str(field.expected)
+            actual_str = str(field.actual)[:8] + "..." if len(str(field.actual)) > 8 else str(field.actual)
+            
+            # Convert status to simpler format
+            status_map = {
+                'identical': 'match',
+                'in_tolerance': 'tolerated',
+                'outside_tolerance': 'fail',
+                'type_mismatch': 'fail',
+                'missing_required': 'fail',
+                'optional_missing': 'tolerated',
+                'list_item_missing': 'fail',
+                'list_item_field_mismatch': 'fail'
+            }
+            simple_status = status_map.get(field.status, field.status)
+            
+            # Create shorter reason text
+            reason_str = self._create_short_reason(field)
+            
+            row = f"{field.name:<18} | {simple_status:<10} | {expected_str:<8} | {actual_str:<8} | {reason_str}"
+            rows.append(row)
+        
+        # Combine header, separator, and rows
+        table_lines = [header, separator] + rows
+        return "\n".join(table_lines)
+    
+    def _create_short_reason(self, field: 'FieldResult') -> str:
+        """Create a short reason string for table display."""
+        if field.status == 'identical':
+            return 'exact'
+        elif field.status == 'in_tolerance':
+            if field.tolerance_applied:
+                return f"< {field.tolerance_applied}"
+            else:
+                return 'tolerated'
+        elif field.status == 'outside_tolerance':
+            if field.tolerance_applied:
+                return f"> {field.tolerance_applied}"
+            else:
+                return 'failed'
+        elif field.status == 'type_mismatch':
+            return 'type'
+        elif field.status == 'missing_required':
+            return 'missing'
+        elif field.status == 'optional_missing':
+            return 'optional'
+        else:
+            return field.reason[:20] + "..." if len(field.reason) > 20 else field.reason
     
     def to_json(self) -> str:
         """Convert result to JSON string."""
@@ -182,9 +255,19 @@ class FullComparisonResult(ComparisonResult):
         Args:
             logging_config: Logging configuration to use
         """
-        if not logging_config.enabled:
+        # Check if explicitly disabled
+        if logging_config.enabled is False:
             return
-            
+        
+        # Get logger
+        logger = logging.getLogger(logging_config.logger_name)
+        
+        # If enabled is None, auto-detect from logger level
+        if logging_config.enabled is None:
+            # Only log if logger is enabled for INFO level or higher
+            if not logger.isEnabledFor(logging.INFO):
+                return
+        
         # Check if we should log based on 'when' setting
         should_log = False
         if logging_config.when == "always":
@@ -195,9 +278,6 @@ class FullComparisonResult(ComparisonResult):
         if not should_log:
             return
             
-        # Get logger
-        logger = logging.getLogger(logging_config.logger_name)
-        
         # Log the result
         self.log_result(logger, logging_config.level, logging_config.format)
 

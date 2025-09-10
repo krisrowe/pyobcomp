@@ -147,3 +147,42 @@ def create(profile: CompareProfile):
     return ComparerFactory.create(profile)
 
 
+def enable_logging(level=None, when="on_fail", format="table"):
+    """Enable logging for pyobcomp comparisons.
+    
+    This is a convenience method that configures the pyobcomp logger
+    so that comparisons will be automatically logged.
+    
+    Args:
+        level: Python logging level (default: INFO)
+        when: When to log ("always" or "on_fail", default: "on_fail")
+        format: Output format ("table" or "json", default: "table")
+    """
+    import logging
+    from .models import LoggingLevel, LoggingFormat, LoggingConfig
+    
+    # Default to INFO if no level specified
+    if level is None:
+        level = logging.INFO
+    
+    # Configure the logger
+    logger = logging.getLogger("pyobcomp.comparison")
+    logger.setLevel(level)
+    
+    # Set up a basic handler if none exists
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    
+    # Store the configuration for auto_log to use
+    global _logging_config
+    _logging_config = LoggingConfig(
+        enabled=None,  # Auto-detect from logger
+        when=when,
+        level=LoggingLevel.FAILURES if level >= logging.ERROR else LoggingLevel.ALL,
+        format=LoggingFormat.TABLE if format == "table" else LoggingFormat.JSON
+    )
+
+

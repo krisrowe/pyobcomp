@@ -6,7 +6,7 @@ and comprehensive reporting capabilities for testing and validation.
 """
 
 from .comparer import Comparer
-from .factory import ComparerFactory, load_profile, create_from_file, create
+from .factory import ComparerFactory, load_profile, create_from_file, create, enable_logging
 from .models import (
     ToleranceConfig, FieldConfig, FieldSettings, ComparisonOptions, 
     ComparisonResult, FullComparisonResult, FieldResult, ComparisonStatus, CompareProfile,
