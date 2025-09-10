@@ -1,6 +1,6 @@
 # Contributing to PyObComp
 
-Thank you for your interest in contributing to PyObComp! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to PyObComp!
 
 ## Development Setup
 
@@ -11,122 +11,20 @@ Thank you for your interest in contributing to PyObComp! This document provides 
    cd pyobcomp
    ```
 
-3. **Create a virtual environment**:
+3. **Set up development environment**:
    ```bash
-   python -m venv venv
+   python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -e ".[dev]"
    ```
-
-4. **Install in development mode**:
-   ```bash
-   pip install -e .
-   ```
-
-5. **Install development dependencies**:
-   ```bash
-   pip install pytest black flake8 mypy
-   ```
-
-## Code Style
-
-- Follow **PEP 8** style guidelines
-- Use **type hints** for all function parameters and return values
-- Write **docstrings** for all public functions and classes
-- Use **black** for code formatting: `black src/ tests/`
-- Use **flake8** for linting: `flake8 src/ tests/`
 
 ## Running Tests
 
 Run the test suite to ensure everything works:
 
 ```bash
-# Run all tests
 pytest
-
-# Run with coverage
-pytest --cov=pyobcomp
-
-# Run specific test file
-pytest tests/test_comparer.py
-
-# Run with verbose output
-pytest -v
 ```
-
-## Testing Guidelines
-
-- Write tests for all new functionality
-- Ensure all tests pass: `pytest`
-- Aim for high test coverage
-- Use descriptive test names that explain what is being tested
-- Test both success and failure cases
-- Include edge cases and error conditions
-
-## Pull Request Process
-
-1. **Create a feature branch** from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. **Make your changes** following the code style guidelines
-
-3. **Add tests** for your changes
-
-4. **Run the test suite**:
-   ```bash
-   pytest
-   ```
-
-5. **Commit your changes** with clear, descriptive commit messages
-
-6. **Push to your fork**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-7. **Create a Pull Request** on GitHub with:
-   - Clear description of changes
-   - Reference to any related issues
-   - Screenshots or examples if applicable
-
-## Issue Reporting
-
-When reporting issues, please include:
-
-- **Python version** and operating system
-- **PyObComp version**
-- **Minimal reproducible example**
-- **Expected vs actual behavior**
-- **Error messages** (if any)
-
-## Feature Requests
-
-For feature requests, please:
-
-- Check if the feature already exists or is planned
-- Provide a clear use case and motivation
-- Consider if the feature fits the project's scope
-- Be open to discussion and alternative approaches
-
-## Code Review
-
-All submissions require review. We look for:
-
-- **Correctness**: Does the code work as intended?
-- **Style**: Does it follow project conventions?
-- **Tests**: Are there adequate tests?
-- **Documentation**: Is the code well-documented?
-- **Performance**: Are there any performance implications?
-
-## Release Process
-
-Releases are managed by maintainers. The process includes:
-
-1. Version bumping
-2. Changelog updates
-3. Tag creation
-4. PyPI package upload
 
 ## Questions?
 

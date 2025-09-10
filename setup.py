@@ -58,9 +58,6 @@ setup(
         "dev": [
             "pytest>=6.0",
             "pytest-cov",
-            "black",
-            "flake8",
-            "mypy",
         ],
         "yaml": [
             "PyYAML>=5.0",
