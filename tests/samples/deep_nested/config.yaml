@@ -5,3 +5,4 @@ fields:
     absolute: 2.0
   nutrition.vitamins.vitamin_c:
     required: true
+

@@ -60,6 +60,9 @@ class ComparerFactory:
         # Import here to avoid circular dependencies
         from .comparer import Comparer
         
+        # Use profile options
+        options = profile.options
+        
         # Convert CompareProfile to the format expected by Comparer
         tolerances = {}
         for field_path, field_settings in profile.fields.items():
@@ -84,7 +87,7 @@ class ComparerFactory:
                     text_validation=field_settings.text_validation if field_settings.text_validation is not None else False
                 )
         
-        return Comparer(tolerances=tolerances, options=profile.options)
+        return Comparer(tolerances=tolerances, options=options)
     
     @staticmethod
     def _parse_config_data(config_data: Dict[str, Any]) -> CompareProfile:
@@ -136,7 +139,11 @@ def create_from_file(file_path: Union[str, Path]):
 
 
 def create(profile: CompareProfile):
-    """Create a Comparer from a CompareProfile."""
+    """Create a Comparer from a CompareProfile.
+    
+    Args:
+        profile: CompareProfile configuration
+    """
     return ComparerFactory.create(profile)
 
 

@@ -3,3 +3,4 @@ fields:
     percentage: 10.0
   "items.*.protein":
     percentage: 10.0
+

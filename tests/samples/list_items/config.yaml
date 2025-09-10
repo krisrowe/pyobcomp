@@ -5,3 +5,4 @@ fields:
     absolute: 1.0
   items.*.name:
     required: true
+

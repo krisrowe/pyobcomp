@@ -43,11 +43,11 @@ class BaseCompareTests:
         # Check individual field results
         calories_field = next(f for f in result.fields if f.name == 'calories')
         assert calories_field.passed == True
-        assert calories_field.status == ComparisonStatus.IN_TOLERANCE
+        assert calories_field.status == ComparisonStatus.IN_TOLERANCE.value
         
         protein_field = next(f for f in result.fields if f.name == 'protein')
         assert protein_field.passed == True
-        assert protein_field.status == ComparisonStatus.IN_TOLERANCE
+        assert protein_field.status == ComparisonStatus.IN_TOLERANCE.value
     
     def test_percent_tolerance(self, test_data):
         """Test percentage tolerance comparison."""
@@ -61,11 +61,11 @@ class BaseCompareTests:
         # Check individual field results
         calories_field = next(f for f in result.fields if f.name == 'calories')
         assert calories_field.passed == True
-        assert calories_field.status == ComparisonStatus.IN_TOLERANCE
+        assert calories_field.status == ComparisonStatus.IN_TOLERANCE.value
         
         protein_field = next(f for f in result.fields if f.name == 'protein')
         assert protein_field.passed == True
-        assert protein_field.status == ComparisonStatus.IN_TOLERANCE
+        assert protein_field.status == ComparisonStatus.IN_TOLERANCE.value
     
     def test_field_not_required(self, test_data):
         """Test optional field handling."""
@@ -79,15 +79,15 @@ class BaseCompareTests:
         # Check individual field results
         calories_field = next(f for f in result.fields if f.name == 'calories')
         assert calories_field.passed == True
-        assert calories_field.status == ComparisonStatus.IDENTICAL
+        assert calories_field.status == ComparisonStatus.IDENTICAL.value
         
         protein_field = next(f for f in result.fields if f.name == 'protein')
         assert protein_field.passed == True
-        assert protein_field.status == ComparisonStatus.OPTIONAL_MISSING
+        assert protein_field.status == ComparisonStatus.OPTIONAL_MISSING.value
         
         fiber_field = next(f for f in result.fields if f.name == 'fiber')
         assert fiber_field.passed == True
-        assert fiber_field.status == ComparisonStatus.OPTIONAL_MISSING
+        assert fiber_field.status == ComparisonStatus.OPTIONAL_MISSING.value
     
     def test_field_required(self, test_data):
         """Test required field handling."""
@@ -101,11 +101,11 @@ class BaseCompareTests:
         # Check individual field results
         calories_field = next(f for f in result.fields if f.name == 'calories')
         assert calories_field.passed == True
-        assert calories_field.status == ComparisonStatus.IDENTICAL
+        assert calories_field.status == ComparisonStatus.IDENTICAL.value
         
         protein_field = next(f for f in result.fields if f.name == 'protein')
         assert protein_field.passed == False
-        assert protein_field.status == ComparisonStatus.MISSING_REQUIRED
+        assert protein_field.status == ComparisonStatus.MISSING_REQUIRED.value
     
     def test_list_item_missing(self, test_data):
         """Test missing list item handling."""
@@ -119,7 +119,7 @@ class BaseCompareTests:
         # Check the array length mismatch
         length_field = next(f for f in result.fields if f.name == 'items.length')
         assert length_field.passed == False
-        assert length_field.status == ComparisonStatus.ARRAY_LENGTH_MISMATCH
+        assert length_field.status == ComparisonStatus.ARRAY_LENGTH_MISMATCH.value
     
     def test_list_item_field_mismatch(self, test_data):
         """Test field mismatch within list items."""
@@ -133,7 +133,7 @@ class BaseCompareTests:
         # Check the field mismatch
         calories_field = next(f for f in result.fields if f.name == 'items[1].calories')
         assert calories_field.passed == False
-        assert calories_field.status == ComparisonStatus.OUTSIDE_TOLERANCE
+        assert calories_field.status == ComparisonStatus.OUTSIDE_TOLERANCE.value
     
     def test_deep_nested_mismatch(self, test_data):
         """Test mismatch on a field within an object within an object."""
@@ -147,7 +147,7 @@ class BaseCompareTests:
         # Check the deep nested field
         vitamin_c_field = next(f for f in result.fields if f.name == 'nutrition.vitamins.vitamin_c')
         assert vitamin_c_field.passed == False
-        assert vitamin_c_field.status == ComparisonStatus.VALUE_MISMATCH
+        assert vitamin_c_field.status == ComparisonStatus.VALUE_MISMATCH.value
     
     def test_mixed_tolerances(self, test_data):
         """Test mixed tolerances where one field passes by absolute but fails by percentage, and vice versa."""
@@ -161,11 +161,11 @@ class BaseCompareTests:
         # Check individual field results
         calories_field = next(f for f in result.fields if f.name == 'calories')
         assert calories_field.passed == True
-        assert calories_field.status == ComparisonStatus.IN_TOLERANCE
+        assert calories_field.status == ComparisonStatus.IN_TOLERANCE.value
         
         protein_field = next(f for f in result.fields if f.name == 'protein')
         assert protein_field.passed == True
-        assert protein_field.status == ComparisonStatus.IN_TOLERANCE
+        assert protein_field.status == ComparisonStatus.IN_TOLERANCE.value
     
     def test_ignore_fields(self, test_data):
         """Test ignoring fields completely."""
@@ -179,19 +179,19 @@ class BaseCompareTests:
         # Check individual field results
         calories_field = next(f for f in result.fields if f.name == 'calories')
         assert calories_field.passed == True
-        assert calories_field.status == ComparisonStatus.IN_TOLERANCE
+        assert calories_field.status == ComparisonStatus.IN_TOLERANCE.value
         
         protein_field = next(f for f in result.fields if f.name == 'protein')
         assert protein_field.passed == True
-        assert protein_field.status == ComparisonStatus.IGNORED
+        assert protein_field.status == ComparisonStatus.IGNORED.value
         
         sodium_field = next(f for f in result.fields if f.name == 'sodium')
         assert sodium_field.passed == True
-        assert sodium_field.status == ComparisonStatus.IGNORED
+        assert sodium_field.status == ComparisonStatus.IGNORED.value
         
         carbs_field = next(f for f in result.fields if f.name == 'carbs')
         assert carbs_field.passed == True
-        assert carbs_field.status == ComparisonStatus.IDENTICAL
+        assert carbs_field.status == ComparisonStatus.IDENTICAL.value
     
     def test_text_validation(self, test_data):
         """Test text validation (only check not empty)."""
@@ -205,8 +205,8 @@ class BaseCompareTests:
         # Check individual field results
         name_field = next(f for f in result.fields if f.name == 'name')
         assert name_field.passed == True
-        assert name_field.status in [ComparisonStatus.IDENTICAL, ComparisonStatus.IN_TOLERANCE]
+        assert name_field.status in [ComparisonStatus.IDENTICAL.value, ComparisonStatus.IN_TOLERANCE.value]
         
         description_field = next(f for f in result.fields if f.name == 'description')
         assert description_field.passed == True
-        assert description_field.status in [ComparisonStatus.IDENTICAL, ComparisonStatus.IN_TOLERANCE]
+        assert description_field.status in [ComparisonStatus.IDENTICAL.value, ComparisonStatus.IN_TOLERANCE.value]

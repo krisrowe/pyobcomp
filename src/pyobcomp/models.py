@@ -5,9 +5,10 @@ This module contains all the data models used by PyObComp, with no dependencies
 on the comparison logic to avoid circular imports.
 """
 
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from enum import Enum
+import logging
 
 
 class ComparisonStatus(Enum):
@@ -61,14 +62,39 @@ class FieldConfig(BaseModel):
         return v
 
 
+class LoggingLevel(str, Enum):
+    """Logging levels for comparison output."""
+    FAILURES = "failures"      # Only failed fields
+    DIFFERENCES = "differences"  # All differences (including within tolerance)
+    ALL = "all"                # All fields including identical matches
+
+
+class LoggingFormat(str, Enum):
+    """Output format for comparison logging."""
+    TABLE = "table"            # Human-readable table format
+    JSON = "json"              # JSON format for machine parsing
+
+
+class LoggingConfig(BaseModel):
+    """Configuration for comparison logging."""
+    enabled: bool = Field(False, description="Enable automatic comparison logging")
+    when: Literal["never", "always", "on_fail"] = Field("never", description="When to log comparisons")
+    level: LoggingLevel = Field(LoggingLevel.FAILURES, description="Level of detail to log")
+    format: LoggingFormat = Field(LoggingFormat.TABLE, description="Output format for logs")
+    logger_name: str = Field("pyobcomp.comparison", description="Logger name to use")
+
+
 class ComparisonOptions(BaseModel):
     """Global options for object comparison."""
     normalize_types: bool = Field(False, description="Handle int/float differences (9 vs 9.0)")
     debug: bool = Field(False, description="Enable debug logging")
+    logging: LoggingConfig = Field(default_factory=LoggingConfig, description="Logging configuration")
 
 
 class FieldResult(BaseModel):
     """Result of a single field comparison."""
+    model_config = ConfigDict(use_enum_values=True)
+    
     name: str = Field(..., description="Field path (e.g., 'items[0].nutrition.calories')")
     passed: bool = Field(..., description="Simple pass/fail boolean")
     status: ComparisonStatus = Field(..., description="Detailed status enum")
@@ -82,6 +108,8 @@ class FieldResult(BaseModel):
 
 class ComparisonResult(BaseModel):
     """Base result class for filtered comparison results."""
+    model_config = ConfigDict(use_enum_values=True)
+    
     fields: List[FieldResult] = Field(default_factory=list, description="Individual field results")
     
     def format_table(self, detail: str = 'failures') -> str:
@@ -92,10 +120,47 @@ class ComparisonResult(BaseModel):
         """
         # TODO: Implement table formatting
         return f"Comparison result: {len(self.fields)} fields"
+    
+    def to_json(self) -> str:
+        """Convert result to JSON string."""
+        import json
+        return json.dumps(self.model_dump(), indent=2)
+    
+    def _get_filtered_fields(self, level: LoggingLevel) -> List[FieldResult]:
+        """Get fields filtered by logging level."""
+        if level == LoggingLevel.FAILURES:
+            return [f for f in self.fields if not f.passed]
+        elif level == LoggingLevel.DIFFERENCES:
+            return [f for f in self.fields if f.status != ComparisonStatus.IDENTICAL]
+        else:  # ALL
+            return self.fields
+    
+    def log_result(self, logger: logging.Logger, level: LoggingLevel, format: LoggingFormat) -> None:
+        """Log comparison result with specified level and format."""
+        if not logger.isEnabledFor(logging.INFO):
+            return
+            
+        filtered_fields = self._get_filtered_fields(level)
+        
+        if format == LoggingFormat.TABLE:
+            # Use format_table for table output
+            detail_map = {
+                LoggingLevel.FAILURES: 'failures',
+                LoggingLevel.DIFFERENCES: 'differences', 
+                LoggingLevel.ALL: 'all'
+            }
+            output = self.format_table(detail=detail_map[level])
+            logger.info(f"Comparison Result:\n{output}")
+        else:  # JSON
+            # Create a filtered result for JSON output
+            filtered_result = ComparisonResult(fields=filtered_fields)
+            logger.info(f"Comparison Result (JSON):\n{filtered_result.to_json()}")
 
 
 class FullComparisonResult(ComparisonResult):
     """Complete result of an object comparison with overall status."""
+    model_config = ConfigDict(use_enum_values=True)
+    
     matches: bool = Field(..., description="Overall pass/fail result")
     summary: str = Field(..., description="Human-readable summary")
     
@@ -108,8 +173,33 @@ class FullComparisonResult(ComparisonResult):
         Returns:
             Filtered ComparisonResult with only fields matching the status
         """
-        filtered_fields = [f for f in self.fields if f.status == status_filter]
+        filtered_fields = [f for f in self.fields if f.status == status_filter.value]
         return ComparisonResult(fields=filtered_fields)
+    
+    def auto_log(self, logging_config: 'LoggingConfig') -> None:
+        """Automatically log comparison result based on configuration.
+        
+        Args:
+            logging_config: Logging configuration to use
+        """
+        if not logging_config.enabled:
+            return
+            
+        # Check if we should log based on 'when' setting
+        should_log = False
+        if logging_config.when == "always":
+            should_log = True
+        elif logging_config.when == "on_fail" and not self.matches:
+            should_log = True
+            
+        if not should_log:
+            return
+            
+        # Get logger
+        logger = logging.getLogger(logging_config.logger_name)
+        
+        # Log the result
+        self.log_result(logger, logging_config.level, logging_config.format)
 
 
 class FieldSettings(BaseModel):

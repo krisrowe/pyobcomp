@@ -40,6 +40,7 @@ class TestFilterResults:
         result = self.comparer.compare(self.expected_data, self.actual_data)
         
         # Filter to show only fields that are different (not identical)
+        from pyobcomp.models import ComparisonStatus
         filtered_result = result.filter(ComparisonStatus.IN_TOLERANCE)
         filtered_result.fields.extend(result.filter(ComparisonStatus.OUTSIDE_TOLERANCE).fields)
         
@@ -56,8 +57,8 @@ class TestFilterResults:
         fat_field = next(f for f in filtered_result.fields if f.name == 'fat')
         carbs_field = next(f for f in filtered_result.fields if f.name == 'carbs')
         
-        assert fat_field.status == ComparisonStatus.OUTSIDE_TOLERANCE
-        assert carbs_field.status == ComparisonStatus.IN_TOLERANCE
+        assert fat_field.status == ComparisonStatus.OUTSIDE_TOLERANCE.value
+        assert carbs_field.status == ComparisonStatus.IN_TOLERANCE.value
     
     def test_level_all(self):
         """Test filtering to show all fields."""
@@ -84,6 +85,6 @@ class TestFilterResults:
         fat_field = next(f for f in filtered_result.fields if f.name == 'fat')
         carbs_field = next(f for f in filtered_result.fields if f.name == 'carbs')
         
-        assert protein_field.status == ComparisonStatus.IDENTICAL
-        assert fat_field.status == ComparisonStatus.OUTSIDE_TOLERANCE
-        assert carbs_field.status == ComparisonStatus.IN_TOLERANCE
+        assert protein_field.status == ComparisonStatus.IDENTICAL.value
+        assert fat_field.status == ComparisonStatus.OUTSIDE_TOLERANCE.value
+        assert carbs_field.status == ComparisonStatus.IN_TOLERANCE.value

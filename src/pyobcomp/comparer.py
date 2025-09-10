@@ -45,11 +45,16 @@ class Comparer:
         result = self._compare_values("", expected, actual, fields)
         all_passed = result.matches
         
-        return FullComparisonResult(
+        result = FullComparisonResult(
             matches=all_passed,
             summary=f"Comparison {'passed' if all_passed else 'failed'} with {len([f for f in fields if not f.passed])} differences",
             fields=fields
         )
+        
+        # Auto-log if logging is enabled
+        result.auto_log(self.options.logging)
+        
+        return result
     
     def _compare_values(self, path: str, expected: Any, actual: Any, fields: List[FieldResult]) -> FullComparisonResult:
         """Compare two values at a specific path."""

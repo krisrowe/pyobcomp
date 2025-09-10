@@ -401,3 +401,4 @@ class ObjectComparator:
     def _is_numerical(self, value: Any) -> bool:
         """Check if a value is numerical."""
         return isinstance(value, (int, float)) and not isinstance(value, bool)
+
