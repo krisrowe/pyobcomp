@@ -43,7 +43,6 @@ class ToleranceConfig:
 class FieldConfig:
     """Configuration for field behavior settings."""
     required: bool = True
-    optional: bool = False
     ignore: bool = False
     text_validation: bool = False
     
@@ -52,15 +51,12 @@ class FieldConfig:
             raise ValueError("Field cannot be both ignored and text-validated")
         if self.ignore and self.required:
             raise ValueError("Field cannot be both ignored and required")
-        if self.optional and self.required:
-            raise ValueError("Field cannot be both optional and required")
 
 
 @dataclass
 class ComparisonOptions:
     """Global options for object comparison."""
     normalize_types: bool = False
-    debug: bool = False
 
 
 @dataclass

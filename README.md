@@ -421,7 +421,7 @@ result = comparer.compare(expected, actual)
 
 # Manually log with custom settings
 logger = logging.getLogger("myapp.comparisons")
-result.log_result(logger, LoggingLevel.ALL, LoggingFormat.JSON)
+logger.info(f"Comparison Result (JSON):\n{result.to_json()}")
 ```
 
 ### Table Output
@@ -529,7 +529,6 @@ fields:
 
 options:
   normalize_types: true
-  debug: false
   logging:
     enabled: true
     when: "on_fail"
@@ -557,7 +556,10 @@ from pyobcomp import load_profile, create, CompareProfile, FieldSettings
 
 # Load comparison rule set and modify programmatically
 profile = load_profile('comparison_config.yaml')
-profile.options.debug = True
+
+# Enable debug logging via Python logging framework
+import logging
+logging.getLogger("pyobcomp.comparison").setLevel(logging.DEBUG)
 
 # Create comparer from modified rule set
 comparer = create(profile)
@@ -580,7 +582,9 @@ strict_profile.fields.update({
     'items.*.nutrition.protein': FieldSettings(percentage=5.0, absolute=1.0),
     'items.*.verified_calculation': FieldSettings(required=True),  # Must be verified
 })
-strict_profile.options.debug = True  # Enable debug for strict tests
+# Enable debug logging for strict tests
+import logging
+logging.getLogger("pyobcomp.comparison").setLevel(logging.DEBUG)
 
 # Create a lenient version for exploratory tests
 lenient_profile = base_profile.model_copy()
@@ -638,7 +642,6 @@ fields:
 
 options:
   normalize_types: true
-  debug: false
 ```
 
 ### Configuration Schema
@@ -659,7 +662,6 @@ fields:
 
 options:
   normalize_types: bool  # Handle 9 vs 9.0 (default: false)
-  debug: bool           # Enable debug logging (default: false)
   logging:              # Logging configuration
     enabled: bool       # Enable logging (default: false)
     when: string        # When to log: "never", "always", "on_fail" (default: "on_fail")
@@ -1147,17 +1149,6 @@ A: Use `FieldSettings(ignore=True)` for fields you want to skip entirely.
 **Q: How do I get a cleaner output format?**
 A: Use `result.format_table()` instead of iterating through `result.fields`. It provides a compact tabular view with grouping.
 
-### Debug Mode
-
-Enable debug mode for detailed comparison logging:
-
-```python
-profile = CompareProfile(
-    fields={...},
-    options=ComparisonOptions(debug=True)  # Enables detailed logging
-)
-comparer = create(profile)
-```
 
 This will log every comparison step, making it easier to understand why comparisons fail.
 

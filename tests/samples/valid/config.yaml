@@ -9,4 +9,3 @@ fields:
     ignore: true
 options:
   normalize_types: true
-  debug: false

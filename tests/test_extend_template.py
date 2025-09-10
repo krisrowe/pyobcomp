@@ -210,7 +210,9 @@ options:
             # Now extend the profile to enable type normalization
             extended_profile = base_profile.model_copy()
             extended_profile.options.normalize_types = True
-            extended_profile.options.debug = True
+            # Enable debug logging for this test
+            import logging
+            logging.getLogger("pyobcomp.comparison").setLevel(logging.DEBUG)
             
             # Extended comparison should now pass
             extended_comparer = create(extended_profile)

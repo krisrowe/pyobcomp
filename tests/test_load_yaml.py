@@ -27,7 +27,7 @@ class TestLoadYAML:
         assert profile.fields['carbs'].required == True
         assert profile.fields['fiber'].ignore == True
         assert profile.options.normalize_types == True
-        assert profile.options.debug == False
+        # Debug option no longer exists - use logging framework instead
         
         # Test creating comparer from file (this also validates the YAML)
         comparer = create_from_file("tests/samples/valid/config.yaml")
@@ -82,7 +82,7 @@ fields:
             profile = load_profile(temp_file)
             assert len(profile.fields) == 0
             assert profile.options.normalize_types == False
-            assert profile.options.debug == False
+            # Debug option no longer exists - use logging framework instead
             
         finally:
             os.unlink(temp_file)

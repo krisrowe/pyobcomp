@@ -87,7 +87,6 @@ class LoggingConfig(BaseModel):
 class ComparisonOptions(BaseModel):
     """Global options for object comparison."""
     normalize_types: bool = Field(False, description="Handle int/float differences (9 vs 9.0)")
-    debug: bool = Field(False, description="Enable debug logging")
     logging: LoggingConfig = Field(default_factory=LoggingConfig, description="Logging configuration")
 
 
@@ -218,26 +217,6 @@ class ComparisonResult(BaseModel):
         else:  # ALL
             return self.fields
     
-    def log_result(self, logger: logging.Logger, level: LoggingLevel, format: LoggingFormat) -> None:
-        """Log comparison result with specified level and format."""
-        if not logger.isEnabledFor(logging.INFO):
-            return
-            
-        filtered_fields = self._get_filtered_fields(level)
-        
-        if format == LoggingFormat.TABLE:
-            # Use format_table for table output
-            detail_map = {
-                LoggingLevel.FAILURES: 'failures',
-                LoggingLevel.DIFFERENCES: 'differences', 
-                LoggingLevel.ALL: 'all'
-            }
-            output = self.format_table(detail=detail_map[level])
-            logger.info(f"Comparison Result:\n{output}")
-        else:  # JSON
-            # Create a filtered result for JSON output
-            filtered_result = ComparisonResult(fields=filtered_fields)
-            logger.info(f"Comparison Result (JSON):\n{filtered_result.to_json()}")
 
 
 class FullComparisonResult(ComparisonResult):
@@ -288,8 +267,21 @@ class FullComparisonResult(ComparisonResult):
         if not should_log:
             return
             
-        # Log the result
-        self.log_result(logger, logging_config.level, logging_config.format)
+        # Log the result using format_table or to_json
+        if logging_config.format == LoggingFormat.TABLE:
+            # Use format_table for table output
+            detail_map = {
+                LoggingLevel.FAILURES: 'failures',
+                LoggingLevel.DIFFERENCES: 'differences', 
+                LoggingLevel.ALL: 'all'
+            }
+            output = self.format_table(detail=detail_map[logging_config.level])
+            logger.info(f"Comparison Result:\n{output}")
+        else:  # JSON
+            # Create a filtered result for JSON output
+            filtered_fields = self._get_filtered_fields(logging_config.level)
+            filtered_result = ComparisonResult(fields=filtered_fields)
+            logger.info(f"Comparison Result (JSON):\n{filtered_result.to_json()}")
 
 
 class FieldSettings(BaseModel):

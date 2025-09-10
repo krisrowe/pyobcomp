@@ -57,4 +57,3 @@ fields:
 
 options:
   normalize_types: true
-  debug: false

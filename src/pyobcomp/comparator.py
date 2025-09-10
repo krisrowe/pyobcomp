@@ -61,7 +61,6 @@ class ObjectComparator:
         options = ComparisonOptions()
         if 'options' in config:
             options.normalize_types = config['options'].get('normalize_types', False)
-            options.debug = config['options'].get('debug', False)
         
         return cls(tolerances=tolerances, options=options)
     

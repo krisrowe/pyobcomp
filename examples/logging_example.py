@@ -154,7 +154,7 @@ def example_manual_logging():
     # Manually log with custom settings
     logger = logging.getLogger("pyobcomp.comparison")
     print("Manually logging all fields in table format:")
-    result.log_result(logger, LoggingLevel.ALL, LoggingFormat.TABLE)
+    logger.info(f"Comparison Result:\n{result.format_table('all')}")
     print()
 
 def example_logger_based_logging():

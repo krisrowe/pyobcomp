@@ -199,7 +199,7 @@ class TestLogging:
         logger.setLevel(logging.INFO)
         
         # Manually log the result
-        result.log_result(logger, LoggingLevel.ALL, LoggingFormat.TABLE)
+        logger.info(f"Comparison Result:\n{result.format_table('all')}")
         
         # Should have logged
         log_output = log_capture.getvalue()
