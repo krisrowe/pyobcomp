@@ -402,3 +402,6 @@ class ObjectComparator:
         """Check if a value is numerical."""
         return isinstance(value, (int, float)) and not isinstance(value, bool)
 
+
+
+

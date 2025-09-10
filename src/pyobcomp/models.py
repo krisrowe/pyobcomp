@@ -123,11 +123,11 @@ class ComparisonResult(BaseModel):
         
         # Filter fields based on detail level
         if detail == 'failures':
-            # Only show fields that failed (not identical and not in tolerance)
-            filtered_fields = [f for f in self.fields if f.status not in ['identical', 'in_tolerance']]
+            # Only show fields that failed (not identical, not in tolerance, not ignored)
+            filtered_fields = [f for f in self.fields if f.status not in ['identical', 'in_tolerance', 'ignored']]
         elif detail == 'differences':
-            # Show fields that are different (not identical)
-            filtered_fields = [f for f in self.fields if f.status != 'identical']
+            # Show fields that are different (not identical, not ignored)
+            filtered_fields = [f for f in self.fields if f.status not in ['identical', 'ignored']]
         elif detail == 'all':
             # Show all fields
             filtered_fields = self.fields
@@ -156,8 +156,10 @@ class ComparisonResult(BaseModel):
                 'type_mismatch': 'fail',
                 'missing_required': 'fail',
                 'optional_missing': 'tolerated',
-                'list_item_missing': 'fail',
-                'list_item_field_mismatch': 'fail'
+                'value_mismatch': 'fail',
+                'object_missing': 'fail',
+                'array_length_mismatch': 'fail',
+                'ignored': 'ignored'
             }
             simple_status = status_map.get(field.status, field.status)
             
@@ -191,6 +193,14 @@ class ComparisonResult(BaseModel):
             return 'missing'
         elif field.status == 'optional_missing':
             return 'optional'
+        elif field.status == 'value_mismatch':
+            return 'exact'
+        elif field.status == 'object_missing':
+            return 'missing'
+        elif field.status == 'array_length_mismatch':
+            return 'length'
+        elif field.status == 'ignored':
+            return 'ignored'
         else:
             return field.reason[:20] + "..." if len(field.reason) > 20 else field.reason
     
