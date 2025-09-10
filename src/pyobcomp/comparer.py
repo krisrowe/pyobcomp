@@ -51,8 +51,8 @@ class Comparer:
             fields=fields
         )
         
-        # Auto-log if logging is enabled
-        result.auto_log(self.options.logging)
+        # Auto-log if logging is enabled, passing raw objects for debug logging
+        result.auto_log(self.options.logging, expected, actual, self.tolerances)
         
         return result
     

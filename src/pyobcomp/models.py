@@ -9,6 +9,32 @@ from typing import Dict, Any, Optional, List, Union, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from enum import Enum
 import logging
+import hashlib
+import json
+import random
+import string
+from collections import deque
+from collections import deque
+
+
+# Class-level cache to track which comparison profiles have been logged
+# Using deque with maxlen=100 to automatically remove oldest entries and prevent memory leaks
+_logged_profiles: deque = deque(maxlen=100)  # deque of (profile_hash, profile_yaml) tuples
+
+
+def _get_profile_hash(tolerances: Dict) -> str:
+    """Generate a hash for the comparison profile to avoid redundant logging."""
+    try:
+        # Convert to JSON string with sorted keys for consistent hashing
+        profile_str = json.dumps(tolerances, sort_keys=True, default=str)
+        return hashlib.md5(profile_str.encode()).hexdigest()[:8]  # Use first 8 chars
+    except Exception:
+        return "unknown"
+
+
+def _generate_comparison_id() -> str:
+    """Generate a short random ID for correlating comparison outputs."""
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
 
 
 class ComparisonStatus(Enum):
@@ -238,11 +264,14 @@ class FullComparisonResult(ComparisonResult):
         filtered_fields = [f for f in self.fields if f.status == status_filter.value]
         return ComparisonResult(fields=filtered_fields)
     
-    def auto_log(self, logging_config: 'LoggingConfig') -> None:
+    def auto_log(self, logging_config: 'LoggingConfig', expected: Any = None, actual: Any = None, tolerances: Dict = None) -> None:
         """Automatically log comparison result based on configuration.
         
         Args:
             logging_config: Logging configuration to use
+            expected: Original expected object (for debug logging)
+            actual: Original actual object (for debug logging)
+            tolerances: Comparison tolerances/profiles (for debug logging)
         """
         # Check if explicitly disabled
         if logging_config.enabled is False:
@@ -250,6 +279,44 @@ class FullComparisonResult(ComparisonResult):
         
         # Get logger
         logger = logging.getLogger(logging_config.logger_name)
+        
+        # Generate comparison ID for correlating outputs
+        comparison_id = _generate_comparison_id()
+        
+        # Add debug logging for raw objects and comparison profile
+        if logger.isEnabledFor(logging.DEBUG) and expected is not None and actual is not None:
+            logger.debug(f"Expected data (JSON) [ID: {comparison_id}]:\n{json.dumps(expected, indent=2, default=str)}")
+            logger.debug(f"Actual data (JSON) [ID: {comparison_id}]:\n{json.dumps(actual, indent=2, default=str)}")
+            
+            # Log the comparison profile/tolerances with hashing to avoid redundancy
+            if tolerances is not None:
+                try:
+                    # Convert tolerances to a serializable format
+                    tolerances_dict = {}
+                    for path, config in tolerances.items():
+                        if hasattr(config, 'model_dump'):
+                            tolerances_dict[path] = config.model_dump()
+                        else:
+                            tolerances_dict[path] = str(config)
+                    
+                    # Generate profile hash
+                    profile_hash = _get_profile_hash(tolerances_dict)
+                    
+                    # Check if we've already logged this profile (search through deque)
+                    profile_found = any(hash_val == profile_hash for hash_val, _ in _logged_profiles)
+                    
+                    if not profile_found:
+                        # First time seeing this profile - log the full details
+                        profile_yaml = json.dumps(tolerances_dict, indent=2, default=str)
+                        _logged_profiles.append((profile_hash, profile_yaml))  # Add to deque (auto-removes oldest if >100)
+                        logger.debug(f"Comparison profile (JSON) [ID: {comparison_id}, hash: {profile_hash}]:\n{profile_yaml}")
+                    else:
+                        # Profile already logged - just reference the hash
+                        logger.debug(f"Comparison profile [ID: {comparison_id}, hash: {profile_hash}] - details logged previously")
+                        
+                except Exception as e:
+                    logger.debug(f"Could not serialize comparison profile: {e}")
+            
         
         # If enabled is None, auto-detect from logger level
         if logging_config.enabled is None:
@@ -276,12 +343,12 @@ class FullComparisonResult(ComparisonResult):
                 LoggingLevel.ALL: 'all'
             }
             output = self.format_table(detail=detail_map[logging_config.level])
-            logger.info(f"Comparison Result:\n{output}")
+            logger.info(f"Comparison Result [ID: {comparison_id}]:\n{output}")
         else:  # JSON
             # Create a filtered result for JSON output
             filtered_fields = self._get_filtered_fields(logging_config.level)
             filtered_result = ComparisonResult(fields=filtered_fields)
-            logger.info(f"Comparison Result (JSON):\n{filtered_result.to_json()}")
+            logger.info(f"Comparison Result (JSON) [ID: {comparison_id}]:\n{filtered_result.to_json()}")
 
 
 class FieldSettings(BaseModel):
