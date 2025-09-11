@@ -88,8 +88,8 @@ class FieldConfig(BaseModel):
         return v
 
 
-class LoggingLevel(str, Enum):
-    """Logging levels for comparison output."""
+class LoggingDetail(str, Enum):
+    """Logging detail levels for comparison output."""
     FAILURES = "failures"      # Only failed fields
     DIFFERENCES = "differences"  # All differences (including within tolerance)
     ALL = "all"                # All fields including identical matches
@@ -105,9 +105,10 @@ class LoggingConfig(BaseModel):
     """Configuration for comparison logging."""
     enabled: Optional[bool] = Field(None, description="Enable logging (None=auto-detect from logger, True/False=explicit)")
     when: Literal["never", "always", "on_fail"] = Field("on_fail", description="When to log comparisons")
-    level: LoggingLevel = Field(LoggingLevel.FAILURES, description="Level of detail to log")
+    detail: LoggingDetail = Field(LoggingDetail.FAILURES, description="Level of detail to log")
     format: LoggingFormat = Field(LoggingFormat.TABLE, description="Output format for logs")
     logger_name: str = Field("pyobcomp.comparison", description="Logger name to use")
+    level: int = Field(logging.INFO, description="Logging level for comparison entries (DEBUG, INFO, WARNING, ERROR)")
 
 
 class ComparisonOptions(BaseModel):
@@ -234,11 +235,11 @@ class ComparisonResult(BaseModel):
         import json
         return json.dumps(self.model_dump(), indent=2)
     
-    def _get_filtered_fields(self, level: LoggingLevel) -> List[FieldResult]:
+    def _get_filtered_fields(self, detail: LoggingDetail) -> List[FieldResult]:
         """Get fields filtered by logging level."""
-        if level == LoggingLevel.FAILURES:
+        if detail == LoggingDetail.FAILURES:
             return [f for f in self.fields if not f.passed]
-        elif level == LoggingLevel.DIFFERENCES:
+        elif detail == LoggingDetail.DIFFERENCES:
             return [f for f in self.fields if f.status != ComparisonStatus.IDENTICAL]
         else:  # ALL
             return self.fields
@@ -338,17 +339,19 @@ class FullComparisonResult(ComparisonResult):
         if logging_config.format == LoggingFormat.TABLE:
             # Use format_table for table output
             detail_map = {
-                LoggingLevel.FAILURES: 'failures',
-                LoggingLevel.DIFFERENCES: 'differences', 
-                LoggingLevel.ALL: 'all'
+                LoggingDetail.FAILURES: 'failures',
+                LoggingDetail.DIFFERENCES: 'differences', 
+                LoggingDetail.ALL: 'all'
             }
-            output = self.format_table(detail=detail_map[logging_config.level])
-            logger.info(f"Comparison Result [ID: {comparison_id}]:\n{output}")
+            output = self.format_table(detail=detail_map[logging_config.detail])
+            # Log comparisons at configured level - global logger settings control visibility
+            logger.log(logging_config.level, f"Comparison Result [ID: {comparison_id}]:\n{output}")
         else:  # JSON
             # Create a filtered result for JSON output
-            filtered_fields = self._get_filtered_fields(logging_config.level)
+            filtered_fields = self._get_filtered_fields(logging_config.detail)
             filtered_result = ComparisonResult(fields=filtered_fields)
-            logger.info(f"Comparison Result (JSON) [ID: {comparison_id}]:\n{filtered_result.to_json()}")
+            # Log comparisons at configured level - global logger settings control visibility
+            logger.log(logging_config.level, f"Comparison Result (JSON) [ID: {comparison_id}]:\n{filtered_result.to_json()}")
 
 
 class FieldSettings(BaseModel):

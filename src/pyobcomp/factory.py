@@ -159,7 +159,7 @@ def enable_logging(level=None, when="on_fail", format="table"):
         format: Output format ("table" or "json", default: "table")
     """
     import logging
-    from .models import LoggingLevel, LoggingFormat, LoggingConfig
+    from .models import LoggingDetail, LoggingFormat, LoggingConfig
     
     # Configure the logger
     logger = logging.getLogger("pyobcomp.comparison")
@@ -176,8 +176,9 @@ def enable_logging(level=None, when="on_fail", format="table"):
     _logging_config = LoggingConfig(
         enabled=None,  # Auto-detect from logger
         when=when,
-        level=LoggingLevel.FAILURES if level >= logging.ERROR else LoggingLevel.ALL,
-        format=LoggingFormat.TABLE if format == "table" else LoggingFormat.JSON
+        detail=LoggingDetail.FAILURES if level >= logging.ERROR else LoggingDetail.ALL,
+        format=LoggingFormat.TABLE if format == "table" else LoggingFormat.JSON,
+        level=level  # Use the provided logging level
     )
 
 

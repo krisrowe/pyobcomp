@@ -4,7 +4,7 @@ Tests for logging functionality.
 import pytest
 import logging
 import io
-from pyobcomp import create, CompareProfile, FieldSettings, ComparisonOptions, LoggingConfig, LoggingLevel, LoggingFormat
+from pyobcomp import create, CompareProfile, FieldSettings, ComparisonOptions, LoggingConfig, LoggingDetail, LoggingFormat
 
 
 class TestLogging:
@@ -72,7 +72,7 @@ class TestLogging:
         profile.options.logging = LoggingConfig(
             enabled=True,
             when="always",
-            level=LoggingLevel.FAILURES,
+            detail=LoggingDetail.FAILURES,
             format=LoggingFormat.TABLE
         )
         comparer = create(profile)
@@ -103,7 +103,7 @@ class TestLogging:
         profile.options.logging = LoggingConfig(
             enabled=True,
             when="on_fail",
-            level=LoggingLevel.FAILURES,
+            detail=LoggingDetail.FAILURES,
             format=LoggingFormat.TABLE
         )
         comparer = create(profile)
@@ -133,7 +133,7 @@ class TestLogging:
         profile.options.logging = LoggingConfig(
             enabled=True,
             when="always",
-            level=LoggingLevel.DIFFERENCES,
+            detail=LoggingDetail.DIFFERENCES,
             format=LoggingFormat.JSON
         )
         comparer = create(profile)
@@ -163,7 +163,7 @@ class TestLogging:
         profile.options.logging = LoggingConfig(
             enabled=True,
             when="always",
-            level=LoggingLevel.FAILURES,
+            detail=LoggingDetail.FAILURES,
             format=LoggingFormat.TABLE
         )
         comparer = create(profile)

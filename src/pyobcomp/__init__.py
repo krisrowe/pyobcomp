@@ -10,7 +10,7 @@ from .factory import ComparerFactory, load_profile, create_from_file, create, en
 from .models import (
     ToleranceConfig, FieldConfig, FieldSettings, ComparisonOptions, 
     ComparisonResult, FullComparisonResult, FieldResult, ComparisonStatus, CompareProfile,
-    LoggingConfig, LoggingLevel, LoggingFormat
+    LoggingConfig, LoggingDetail, LoggingFormat
 )
 
 __version__ = "0.1.0"
@@ -33,6 +33,6 @@ __all__ = [
     "ComparisonStatus",
     "CompareProfile",
     "LoggingConfig",
-    "LoggingLevel", 
+    "LoggingDetail", 
     "LoggingFormat",
 ]
