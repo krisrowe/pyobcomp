@@ -161,13 +161,8 @@ def enable_logging(level=None, when="on_fail", format="table"):
     import logging
     from .models import LoggingLevel, LoggingFormat, LoggingConfig
     
-    # Default to INFO if no level specified
-    if level is None:
-        level = logging.INFO
-    
     # Configure the logger
     logger = logging.getLogger("pyobcomp.comparison")
-    logger.setLevel(level)
     
     # Set up a basic handler if none exists
     if not logger.handlers:

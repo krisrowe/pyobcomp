@@ -392,8 +392,14 @@ class FieldSettings(BaseModel):
         # Check if we have behavior settings (any behavior field with non-None value)
         has_behavior = required is not None or ignore is not None or text_validation is not None
         
+        # Allow tolerance settings with required=False (optional field with tolerance when present)
+        # But not with ignore or text_validation
         if has_tolerance and has_behavior:
-            raise ValueError("Field cannot have both tolerance settings and behavior settings")
+            if ignore is not None or text_validation is not None:
+                raise ValueError("Field cannot have tolerance settings with ignore or text_validation")
+            # Allow tolerance with required=False
+            if required is not None and required is not False:
+                raise ValueError("Field cannot have tolerance settings with required=True")
         
         # Check for mutual exclusivity within behavior settings
         behavior_count = sum(1 for x in [required, ignore, text_validation] if x is not None)
