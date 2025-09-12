@@ -164,12 +164,8 @@ def enable_logging(level=None, when="on_fail", format="table"):
     # Configure the logger
     logger = logging.getLogger("pyobcomp.comparison")
     
-    # Set up a basic handler if none exists
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    # Don't add any handlers - let the global logging configuration handle output
+    # This prevents duplication when logging is already configured globally
     
     # Store the configuration for auto_log to use
     global _logging_config

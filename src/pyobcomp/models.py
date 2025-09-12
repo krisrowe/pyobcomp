@@ -164,7 +164,7 @@ class ComparisonResult(BaseModel):
             return "No fields match the specified detail level"
         
         # Create table header
-        header = "Field Name          | Status     | Expected | Actual   | Reason"
+        header = "Field Name                      | Status     | Expected | Actual   | Reason"
         separator = "-" * len(header)
         
         # Create table rows
@@ -192,7 +192,12 @@ class ComparisonResult(BaseModel):
             # Create shorter reason text
             reason_str = self._create_short_reason(field)
             
-            row = f"{field.name:<18} | {simple_status:<10} | {expected_str:<8} | {actual_str:<8} | {reason_str}"
+            # Truncate field name from the left if too long (30 char column width)
+            field_name_str = field.name
+            if len(field_name_str) > 30:
+                field_name_str = "..." + field_name_str[-(30-3):]  # Keep last 27 chars + "..."
+            
+            row = f"{field_name_str:<30} | {simple_status:<10} | {expected_str:<8} | {actual_str:<8} | {reason_str}"
             rows.append(row)
         
         # Combine header, separator, and rows
